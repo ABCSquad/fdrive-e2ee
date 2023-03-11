@@ -8,6 +8,11 @@ const routes = [
     component: () => import("@/pages/Home.vue"),
   },
   {
+    path: "/vault",
+    name: "Vault",
+    component: () => import("@/pages/Vault.vue"),
+  },
+  {
     path: "/folder/:entityName",
     name: "Folder",
     component: () => import("@/pages/Folder.vue"),
@@ -70,6 +75,7 @@ const routes = [
       window.location.href = "/app";
     },
   },
+  
 ];
 
 let router = createRouter({
