@@ -1,21 +1,24 @@
 <template>
   <div class="h-full w-full">
     <div class="h-full flex flex-col justify-center items-center">
-      <Button @click="generateQR()">Get Resource</Button>
+      <Button @click="generateQR()">Generate QR</Button>
       <pre>{{ token }}</pre>
+      <qrcode-vue :value="token" :size="size" level="H" />
     </div>
   </div>
 </template>
 
 <script>
 import { Button } from "frappe-ui";
+import QrcodeVue from "qrcode.vue";
 
 export default {
   name: "Vault",
   // eslint-disable-next-line vue/no-reserved-component-names
-  components: { Button },
+  components: { Button, QrcodeVue },
   data: () => ({
     token: null,
+    size: 300,
   }),
   methods: {
     async generateQR() {
