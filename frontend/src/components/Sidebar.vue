@@ -41,6 +41,14 @@ export default {
           },
         },
         {
+          label: "Vault",
+          route: "/vault",
+          icon: "lock",
+          highlight: () => {
+            return this.$route.fullPath === "/vault";
+          },
+        },
+        {
           label: "Recents",
           route: "/recent",
           icon: "clock",
