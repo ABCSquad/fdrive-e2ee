@@ -116,7 +116,6 @@ import NewFolderDialog from "@/components/NewFolderDialog.vue";
 import RenameDialog from "@/components/RenameDialog.vue";
 import ShareDialog from "@/components/ShareDialog.vue";
 import GeneralDialog from "@/components/GeneralDialog.vue";
-import ColorPicker from "@/components/ColorPicker.vue";
 import FolderContentsError from "@/components/FolderContentsError.vue";
 import EntityContextMenu from "@/components/EntityContextMenu.vue";
 import EmptyEntityContextMenu from "@/components/EmptyEntityContextMenu.vue";
@@ -149,7 +148,6 @@ export default {
     showShareDialog: false,
     showRemoveDialog: false,
     showEntityContext: false,
-    showColorPicker: false,
     showEmptyEntityContextMenu: false,
     entityContext: {},
     breadcrumbs: [{ label: "Home", route: "/" }],
@@ -433,12 +431,6 @@ export default {
       },
       false
     );
-    this.selectAllListener = (e) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === "a" || e.key === "A"))
-        this.selectedEntities = this.$resources.folderContents.data;
-    };
-    document.addEventListener("keydown", this.selectAllListener);
-
     this.$store.commit("setHasWriteAccess", true);
     let componentContext = this;
     this.emitter.on("fetchFolderContents", () => {
@@ -540,7 +532,6 @@ export default {
     });
   },
   unmounted() {
-    document.removeEventListener("keydown", this.selectAllListener);
     this.$store.commit("setHasWriteAccess", false);
     this.dropzone.destroy();
   },

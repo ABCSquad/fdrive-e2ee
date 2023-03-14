@@ -54,6 +54,7 @@
       :previewEntity="previewEntity" />
     <EntityContextMenu
       v-if="showEntityContext"
+      :entityName="selectedEntities[0].name"
       :actionItems="actionItems"
       :entityContext="entityContext"
       :close="closeContextMenu"
@@ -153,7 +154,6 @@ export default {
     showEntityContext: false,
     showEmptyEntityContextMenu: false,
     showNewFolderDialog: false,
-
     entityContext: {},
     breadcrumbs: [{ label: "Home", route: "/" }],
     isSharedFolder: false,
@@ -590,11 +590,6 @@ export default {
       },
       false
     );
-    this.selectAllListener = (e) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === "a" || e.key === "A"))
-        this.selectedEntities = this.$resources.folderContents.data;
-    };
-    document.addEventListener("keydown", this.selectAllListener);
 
     await this.$resources.folderAccess.fetch();
     this.$store.commit(
@@ -609,7 +604,6 @@ export default {
   },
 
   unmounted() {
-    document.removeEventListener("keydown", this.selectAllListener);
     this.$store.commit("setHasWriteAccess", false);
     if (this.dropzone) this.dropzone.destroy();
   },

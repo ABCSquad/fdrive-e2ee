@@ -113,16 +113,12 @@
 </template>
 
 <script>
-import { FeatherIcon } from "frappe-ui";
 import { formatMimeType } from "@/utils/format";
 import getIconUrl from "@/utils/getIconUrl";
 import { calculateRectangle, handleDragSelect } from "@/utils/dragSelect";
 
 export default {
   name: "GridView",
-  components: {
-    FeatherIcon,
-  },
   data: () => ({
     selectionElementStyle: {},
     selectionCoordinates: { x1: 0, x2: 0, y1: 0, y2: 0 },
@@ -286,6 +282,14 @@ export default {
     document.addEventListener("mousemove", this.handleMousemove);
     document.addEventListener("mouseup", this.handleMouseup);
     visualViewport.addEventListener("resize", this.updateContainerRect);
+    this.selectAllListener = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "a" || e.key === "A"))
+        this.$emit("entitySelected", this.folderContents);
+    };
+    document.addEventListener("keydown", this.selectAllListener);
+  },
+  unmounted() {
+    document.removeEventListener("keydown", this.selectAllListener);
   },
   resources: {
     moveEntity() {
