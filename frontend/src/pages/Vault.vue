@@ -3,7 +3,11 @@
     <div class="h-full flex flex-col justify-center items-center">
       <Button @click="generateQR()">Generate QR</Button>
       <pre>{{ token }}</pre>
-      <qrcode-vue :value="token" :size="size" level="H" />
+      <qrcode-vue
+        v-if="token"
+        :value="token || undefined"
+        :size="size"
+        level="H" />
     </div>
   </div>
 </template>
