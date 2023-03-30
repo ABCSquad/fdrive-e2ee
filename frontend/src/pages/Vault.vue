@@ -9,6 +9,7 @@
 </template>
 
 <script>
+import { WS } from "engine.io-client/build/esm/transports/websocket";
 import { Button } from "frappe-ui";
 import QrcodeVue from "qrcode.vue";
 
@@ -23,7 +24,15 @@ export default {
   methods: {
     async generateQR() {
       try {
-        const res = await fetch(`http://localhost:5000/api/session/initiate`);
+        const res = await fetch(`http://localhost:5000/api/session/initiate`, {
+          method: "GET",
+          headers: {
+            Connection: "Upgrade",
+            Upgrade: "websocket",
+            "Sec-WebSocket-Version": 13,
+            "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==",
+          },
+        });
 
         if (!res.ok) {
           const message = `An error has occured: ${res.status} - ${res.statusText}`;
@@ -44,6 +53,29 @@ export default {
 
         console.log(result);
         this.token = result.data.data;
+
+        // Connect to websocket connection
+        const socket = new WebSocket(
+          `ws://localhost:5000/companion/${this.token}`
+        );
+        socket.onopen = () => {
+          console.log("Connected to websocket");
+        };
+        socket.onmessage = (event) => {
+          console.log(`Server says: ${event.data}`);
+          socket.send("Hey, server! I'm the companion device");
+        };
+        socket.onclose = (event) => {
+          if (event.wasClean) {
+            console.log("Connection closed cleanly");
+          } else {
+            console.log("Connection died");
+          }
+          console.log(`Code: ${event.code} | Reason: ${event.reason}`);
+        };
+        socket.onerror = (error) => {
+          console.log(`Error: ${error.message}`);
+        };
       } catch (err) {
         console.log(err.message);
       }
