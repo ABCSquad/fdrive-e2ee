@@ -9,7 +9,6 @@
 </template>
 
 <script>
-import { WS } from "engine.io-client/build/esm/transports/websocket";
 import { Button } from "frappe-ui";
 import QrcodeVue from "qrcode.vue";
 
@@ -24,15 +23,18 @@ export default {
   methods: {
     async generateQR() {
       try {
-        const res = await fetch(`http://localhost:5000/api/session/initiate`, {
-          method: "GET",
-          headers: {
-            Connection: "Upgrade",
-            Upgrade: "websocket",
-            "Sec-WebSocket-Version": 13,
-            "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==",
-          },
-        });
+        const res = await fetch(
+          `http://192.168.29.215:5000/api/session/initiate`,
+          {
+            method: "GET",
+            headers: {
+              Connection: "Upgrade",
+              Upgrade: "websocket",
+              "Sec-WebSocket-Version": 13,
+              "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==",
+            },
+          }
+        );
 
         if (!res.ok) {
           const message = `An error has occured: ${res.status} - ${res.statusText}`;
@@ -56,12 +58,12 @@ export default {
 
         // Connect to websocket connection
         const socket = new WebSocket(
-          `ws://localhost:5000/companion/${this.token}`
+          `ws://192.168.29.215:5000/companion/${this.token}`
         );
         socket.onopen = () => {
           console.log("Connected to websocket");
         };
-        socket.onmessage = (event) => {
+        socket.onmessage = async (event) => {
           // Determine type of message
           const receivedMessage = JSON.parse(event.data);
           // If message is a greeting
@@ -70,7 +72,10 @@ export default {
           }
           // If message is a prekey bundle
           if (receivedMessage.type === "primaryPreKeyBundle") {
-            console.log(receivedMessage.preKeyBundle);
+            console.log("Generating IdentityKey", receivedMessage.preKeyBundle);
+            const identityKey =
+              await window.libsignal.KeyHelper.generateIdentityKey();
+            console.log("IdentityKey", identityKey);
           }
         };
         socket.onclose = (event) => {
