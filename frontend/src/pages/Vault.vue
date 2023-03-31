@@ -62,8 +62,16 @@ export default {
           console.log("Connected to websocket");
         };
         socket.onmessage = (event) => {
-          console.log(`Server says: ${event.data}`);
-          socket.send("Hey, server! I'm the companion device");
+          // Determine type of message
+          const receivedMessage = JSON.parse(event.data);
+          // If message is a greeting
+          if (receivedMessage.type === "greeting") {
+            console.log(`Server says: ${receivedMessage.message}`);
+          }
+          // If message is a prekey bundle
+          if (receivedMessage.type === "primaryPreKeyBundle") {
+            console.log(receivedMessage.preKeyBundle);
+          }
         };
         socket.onclose = (event) => {
           if (event.wasClean) {
