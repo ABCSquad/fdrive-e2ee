@@ -14,6 +14,7 @@
   "dependencies": {
     "@headlessui/vue": "^1.7.8",
     "buffer": "^6.0.3",
+    "bytebuffer": "^5.0.1",
     "canvas-datagrid": "^0.4.5",
     "docx-preview": "^0.1.14",
     "dropzone": "^6.0.0-beta.2",
@@ -25,6 +26,7 @@
     "patch-package": "^6.5.1",
     "protobufjs": "^7.2.3",
     "qrcode.vue": "^3.3.4",
+    "to-arraybuffer": "^1.0.1",
     "vue": "^3.2",
     "vue-router": "^4.1.6",
     "vue-uuid": "^3.0.0",

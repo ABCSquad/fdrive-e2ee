@@ -12,7 +12,8 @@
 import { Button } from "frappe-ui";
 import QrcodeVue from "qrcode.vue";
 import { Buffer } from "buffer";
-import { uuid } from "vue-uuid";
+import toArrayBuffer from "to-arraybuffer";
+import ByteBuffer from "bytebuffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
 
 export default {
@@ -74,8 +75,9 @@ export default {
           }
           // If message is a prekey bundle
           if (receivedMessage.type === "primaryPreKeyBundle") {
-            // Create a new signalStore
-            const signalStore = new SignalProtocolStore();
+            // Create a new signalStores
+            const primarySignalStore = new SignalProtocolStore();
+            const companionSignalStore = new SignalProtocolStore();
 
             // Get primary device related data
             const primarySignalProtocolAddress =
@@ -100,10 +102,10 @@ export default {
               primaryPreKeyBundle.preKey.publicKey,
               "base64"
             ).buffer;
-
+            console.log(primaryPreKeyBundle);
             // Save primary device identity in signalStore
-            signalStore.saveIdentity(
-              primarySignalProtocolAddress.toString(),
+            primarySignalStore.put(
+              "identityKey",
               primaryPreKeyBundle.identityKey
             );
 
@@ -118,35 +120,41 @@ export default {
 
             // Create necessary compaion related data
             // Signal Protocol Address
-            const signalProtocolAddress =
+            const companionSignalProtocolAddress =
               new window.libsignal.SignalProtocolAddress(
                 receivedMessage.primaryUsername,
-                uuid.v4().toString()
+                2
               );
             // identityKeyPair and registrationId
-            const [identityKeyPair, registrationId] = await generateIdentity();
-            // preKey
-            const preKeyId = Math.ceil(Math.random() * 100000);
-            const preKey = await window.libsignal.KeyHelper.generatePreKey(
-              preKeyId
-            );
-            // signedPreKey
-            const signedPreKey =
-              await window.libsignal.KeyHelper.generateSignedPreKey(
-                identityKeyPair,
-                registrationId
+            const [companionIdentityKeyPair, companionRegistrationId] =
+              await generateIdentity();
+            // preKeyId and preKeyPair
+            const companionPreKey =
+              await window.libsignal.KeyHelper.generatePreKey(
+                Math.ceil(Math.random() * 100000)
               );
-
+            console.log(companionPreKey);
+            const companionSignedPreKey =
+              await window.libsignal.KeyHelper.generateSignedPreKey(
+                companionIdentityKeyPair,
+                Math.ceil(Math.random() * 100000)
+              );
+            console.log(companionSignedPreKey);
             // Save companion related data to signalStore
-            signalStore.saveIdentity(
-              signalProtocolAddress.toString(),
-              identityKeyPair.pubKey
+            companionSignalStore.put("identityKey", companionIdentityKeyPair);
+            companionSignalStore.put("registrationId", companionRegistrationId);
+            await companionSignalStore.storePreKey(
+              companionPreKey.keyId,
+              companionPreKey.keyPair
             );
-            signalStore.storePreKey(preKey.keyId, preKey);
-            signalStore.storeSignedPreKey(signedPreKey.keyId, signedPreKey);
+            await companionSignalStore.storeSignedPreKey(
+              companionSignedPreKey.keyId,
+              companionSignedPreKey.keyPair
+            );
+            console.log(companionSignalStore);
 
             const sessionBuilder = new window.libsignal.SessionBuilder(
-              signalStore,
+              companionSignalStore,
               primarySignalProtocolAddress
             );
             const sessionPromise =
@@ -154,43 +162,38 @@ export default {
 
             sessionPromise.then(() => {
               console.log("Sending initial message to primary...");
-              const sessionCipher = new window.libsignal.SessionCipher(
-                signalStore,
+              const companionSessionCipher = new window.libsignal.SessionCipher(
+                companionSignalStore,
                 primarySignalProtocolAddress
               );
-              let plaintextMessage = new TextEncoder().encode(
-                "Hey there, primary!"
+
+              let plaintextMessage = Buffer.from(
+                "Hey Jude, dont make it bad",
+                "utf-8"
               ).buffer;
-              sessionCipher
+              companionSessionCipher
                 .encrypt(plaintextMessage)
                 .then((ciphertext) => {
                   const preKeyWhisperMessageToSend = {
                     type: "preKeyWhisperMessage",
                     preKeyWhisperMessage: ciphertext,
                   };
-                  console.log(ciphertext);
-                  // Creating store for bob
-                  const bobSignalStore = new SignalProtocolStore();
-                  // Saving identity
-                  bobSignalStore.saveIdentity(
-                    primarySignalProtocolAddress.toString(),
-                    primaryPreKeyBundle.identityKey
-                  );
-                  // Create receiver sessionCipher
-                  const bobSessionCipher = new window.libsignal.SessionCipher(
-                    bobSignalStore,
-                    signalProtocolAddress
-                  );
-                  // Decrypting to test
-                  bobSessionCipher
-                    .decryptPreKeyWhisperMessage(ciphertext.body, "binary")
-                    .then((plaintext) => {
-                      console.log("Decrypted message: ", plaintext);
-                    })
-                    .catch((err) => {
-                      console.log("Error decrypting message");
-                      console.log(err);
-                    });
+                  // console.log(ciphertext);
+                  // // Create receiver sessionCipher
+                  // const bobSessionCipher = new window.libsignal.SessionCipher(
+                  //   primarySignalStore,
+                  //   companionSignalProtocolAddress
+                  //   );
+                  //   // Decrypting to test
+                  //   bobSessionCipher
+                  //   .decryptPreKeyWhisperMessage(ciphertext.body, "binary")
+                  //   .then((plaintext) => {
+                  //     console.log("Decrypted message: ", plaintext);
+                  //   })
+                  //   .catch((err) => {
+                  //     console.log("Error decrypting message");
+                  //     console.log(err);
+                  //   });
                   socket.send(JSON.stringify(preKeyWhisperMessageToSend));
                 })
                 .catch((err) => {
