@@ -27,18 +27,15 @@ export default {
   methods: {
     async generateQR() {
       try {
-        const res = await fetch(
-          `http://192.168.29.215:5000/api/session/initiate`,
-          {
-            method: "GET",
-            headers: {
-              Connection: "Upgrade",
-              Upgrade: "websocket",
-              "Sec-WebSocket-Version": 13,
-              "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==",
-            },
-          }
-        );
+        const res = await fetch(`http://localhost:5000/api/session/initiate`, {
+          method: "GET",
+          headers: {
+            Connection: "Upgrade",
+            Upgrade: "websocket",
+            "Sec-WebSocket-Version": 13,
+            "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==",
+          },
+        });
 
         if (!res.ok) {
           const message = `An error has occured: ${res.status} - ${res.statusText}`;
@@ -61,7 +58,7 @@ export default {
 
         // Connect to websocket connection
         const socket = new WebSocket(
-          `ws://192.168.29.215:5000/companion/${this.token}`
+          `ws://localhost:5000/companion/${this.token}`
         );
         socket.onopen = () => {
           console.log("Connected to websocket");
@@ -168,7 +165,7 @@ export default {
               );
 
               let plaintextMessage = Buffer.from(
-                "Hey Jude, dont make it bad",
+                "Filename: test.txt\nContent: Hello World!",
                 "utf-8"
               ).buffer;
               companionSessionCipher
@@ -178,22 +175,15 @@ export default {
                     type: "preKeyWhisperMessage",
                     preKeyWhisperMessage: ciphertext,
                   };
-                  // console.log(ciphertext);
-                  // // Create receiver sessionCipher
-                  // const bobSessionCipher = new window.libsignal.SessionCipher(
-                  //   primarySignalStore,
-                  //   companionSignalProtocolAddress
-                  //   );
-                  //   // Decrypting to test
-                  //   bobSessionCipher
-                  //   .decryptPreKeyWhisperMessage(ciphertext.body, "binary")
-                  //   .then((plaintext) => {
-                  //     console.log("Decrypted message: ", plaintext);
-                  //   })
-                  //   .catch((err) => {
-                  //     console.log("Error decrypting message");
-                  //     console.log(err);
-                  //   });
+                  // Save address and store to localStorage
+                  localStorage.setItem(
+                    "primarySignalProtocolAddress",
+                    primarySignalProtocolAddress.toString()
+                  );
+                  localStorage.setItem(
+                    "companionSignalStore",
+                    JSON.stringify(companionSignalStore)
+                  );
                   socket.send(JSON.stringify(preKeyWhisperMessageToSend));
                 })
                 .catch((err) => {

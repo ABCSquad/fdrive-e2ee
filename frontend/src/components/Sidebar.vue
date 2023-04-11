@@ -49,6 +49,14 @@ export default {
           },
         },
         {
+          label: "Vault Upload",
+          route: "/vault-upload",
+          icon: "file",
+          highlight: () => {
+            return this.$route.fullPath === "/vault-upload";
+          },
+        },
+        {
           label: "Recents",
           route: "/recent",
           icon: "clock",

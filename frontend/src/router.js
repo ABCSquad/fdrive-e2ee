@@ -13,6 +13,11 @@ const routes = [
     component: () => import("@/pages/Vault.vue"),
   },
   {
+    path: "/vault-upload",
+    name: "Vault Upload",
+    component: () => import("@/pages/VaultUpload.vue"),
+  },
+  {
     path: "/folder/:entityName",
     name: "Folder",
     component: () => import("@/pages/Folder.vue"),
@@ -75,7 +80,6 @@ const routes = [
       window.location.href = "/app";
     },
   },
-  
 ];
 
 let router = createRouter({
