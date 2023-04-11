@@ -32,47 +32,79 @@ export default {
     },
     async initSession() {
       try {
-        // Get companionAddress from localStorage
-        let primaryAddress = localStorage.getItem(
-          "primarySignalProtocolAddress"
-        );
-        // Parse companionAddress
-        primaryAddress = primaryAddress;
-        // Get companionSignalStore from localStorage
-        let companionSignalStore = localStorage.getItem("companionSignalStore");
-        // If any is null, throw an error
-        if (!companionSignalStore || !primaryAddress) {
-          throw new Error("You need to login to Vault first! Click on Vault");
-        }
-        // Parse companionSignalStore
-        companionSignalStore = JSON.parse(companionSignalStore);
-        // Create companionSignalStore instance
-        let companionSignalStoreInstance = new SignalProtocolStore();
-        // Add all keys from companionSignalStore to companionSignalStoreInstance
-        for (let key in companionSignalStore) {
-          companionSignalStoreInstance.store[key] = companionSignalStore[key];
-        }
-        console.log(companionSignalStoreInstance);
-        // Check if sessionStore has a session
-        let sessionRecord =
-          companionSignalStoreInstance.store[
-            "session" + primaryAddress.toString()
-          ];
+        const openRequest = window.indexedDB.open("myDatabase", 1);
 
-        // Create sessionCipher
-        const sessionCipher = new window.libsignal.SessionCipher(
-          companionSignalStoreInstance,
-          primaryAddress
-        );
-        console.log(sessionCipher, "sessionCipher");
-        let plaintextMessage = Buffer.from(
-          "Take a sad song, and make it better",
-          "utf-8"
-        ).buffer;
-        // Encrypt test message using cipher
-        sessionCipher.encrypt(plaintextMessage).then((ciphertext) => {
-          console.log(ciphertext);
-        });
+        openRequest.onupgradeneeded = function (event) {
+          const db = event.target.result;
+          const objectStore = db.createObjectStore("myObjectStore", {
+            keyPath: "id",
+          });
+        };
+
+        openRequest.onsuccess = function (event) {
+          const db = event.target.result;
+          const transaction = db.transaction("myObjectStore", "readonly");
+          const objectStore = transaction.objectStore("myObjectStore");
+
+          const primaryAddressRequest = objectStore.get(
+            "primarySignalProtocolAddress"
+          );
+          const companionSignalStoreRequest = objectStore.get(
+            "companionSignalStore"
+          );
+
+          primaryAddressRequest.onsuccess = function () {
+            const primaryAddress =
+              window.libsignal.SignalProtocolAddress.fromString(
+                primaryAddressRequest.result.value
+              );
+
+            companionSignalStoreRequest.onsuccess = function () {
+              const companionSignalStore =
+                companionSignalStoreRequest.result.value.store;
+
+              const companionSignalStoreInstance = new SignalProtocolStore();
+              for (let key in companionSignalStore) {
+                companionSignalStoreInstance.put(
+                  key,
+                  companionSignalStore[key]
+                );
+              }
+
+              console.log(companionSignalStoreInstance);
+              const sessionCipher = new window.libsignal.SessionCipher(
+                companionSignalStoreInstance,
+                primaryAddress
+              );
+              const plaintextMessage = Buffer.from(
+                "Take a sad song, and make it better",
+                "utf-8"
+              ).buffer;
+              // Encrypt test message using cipher
+              sessionCipher.encrypt(plaintextMessage).then((ciphertext) => {
+                console.log(ciphertext);
+              });
+            };
+
+            companionSignalStoreRequest.onerror = function (event) {
+              console.error(
+                "Error retrieving companionSignalStore from IndexedDB",
+                event.target.error
+              );
+            };
+          };
+
+          primaryAddressRequest.onerror = function (event) {
+            console.error(
+              "Error retrieving primarySignalProtocolAddress from IndexedDB",
+              event.target.error
+            );
+          };
+        };
+
+        openRequest.onerror = function (event) {
+          console.error("Error opening IndexedDB", event.target.error);
+        };
       } catch (err) {
         console.log(err.message);
       }

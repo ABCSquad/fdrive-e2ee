@@ -175,15 +175,56 @@ export default {
                     type: "preKeyWhisperMessage",
                     preKeyWhisperMessage: ciphertext,
                   };
-                  // Save address and store to localStorage
-                  localStorage.setItem(
-                    "primarySignalProtocolAddress",
-                    primarySignalProtocolAddress.toString()
-                  );
-                  localStorage.setItem(
-                    "companionSignalStore",
-                    JSON.stringify(companionSignalStore)
-                  );
+                  // Save address and store to indexed db
+                  // Open a connection to the IndexedDB database
+                  const openRequest = window.indexedDB.open("myDatabase", 1);
+
+                  openRequest.onupgradeneeded = function (event) {
+                    // Create the object store
+                    const db = event.target.result;
+                    const objectStore = db.createObjectStore("myObjectStore", {
+                      keyPath: "id",
+                    });
+                  };
+
+                  openRequest.onsuccess = function (event) {
+                    // Save data to the object store
+                    const db = event.target.result;
+                    const transaction = db.transaction(
+                      "myObjectStore",
+                      "readwrite"
+                    );
+                    const objectStore =
+                      transaction.objectStore("myObjectStore");
+
+                    objectStore.put({
+                      id: "primarySignalProtocolAddress",
+                      value: primarySignalProtocolAddress.toString(),
+                    });
+
+                    objectStore.put({
+                      id: "companionSignalStore",
+                      value: companionSignalStore,
+                    });
+
+                    transaction.oncomplete = function () {
+                      console.log("Data stored in IndexedDB");
+                    };
+
+                    transaction.onerror = function (event) {
+                      console.error(
+                        "Error storing data in IndexedDB",
+                        event.target.error
+                      );
+                    };
+                  };
+
+                  openRequest.onerror = function (event) {
+                    console.error(
+                      "Error opening IndexedDB",
+                      event.target.error
+                    );
+                  };
                   socket.send(JSON.stringify(preKeyWhisperMessageToSend));
                 })
                 .catch((err) => {
