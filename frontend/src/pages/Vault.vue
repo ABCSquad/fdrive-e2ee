@@ -35,7 +35,7 @@ export default {
     async generateQR() {
       try {
         // Connect to websocket connection
-        const socket = new WebSocket(`ws://192.168.29.215:7071/initiate`);
+        const socket = new WebSocket(`ws://localhost:7071/initiate`);
         // Create a signal store
         const companionSignalStore = new SignalProtocolStore();
         let primaryAddress, companionAddress;
@@ -127,6 +127,23 @@ export default {
               "Decrypted message",
               Buffer.from(decryptedMessage).toString("utf8")
             );
+            // Create copy of store
+            let storeContents = Object.assign({}, companionSignalStore.store);
+            // Convert ArrayBuffer identityKeyPair to base64
+            storeContents.identityKey.pubKey = Buffer.from(
+              storeContents.identityKey.pubKey
+            ).toString("base64");
+            storeContents.identityKey.privKey = Buffer.from(
+              storeContents.identityKey.privKey
+            ).toString("base64");
+            // Save primaryAddress to local storage
+            localStorage.setItem("primaryAddress", primaryAddress.toString());
+            // Save store to local storage
+            localStorage.setItem(
+              "companionSignalStore",
+              JSON.stringify(storeContents)
+            );
+            console.log("Store contents saved to local storage");
           }
         };
         socket.onclose = (event) => {
