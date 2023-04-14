@@ -11,6 +11,7 @@
 import { Button } from "frappe-ui";
 import { Buffer } from "buffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
+import CryptoJS from "crypto-js";
 let globalStore, sessionCipher;
 
 export default {
@@ -25,24 +26,40 @@ export default {
     async uploadFile($event) {
       try {
         const file = $event.target.files[0];
-        // perform file upload logic here
-        console.log(file);
         // Logging the cipher and store
         console.log(sessionCipher, globalStore);
-        // Encrypt the file using the sessionCipher
-        const encryptedFile = await sessionCipher.encrypt(
-          Buffer.from(JSON.stringify(file)).buffer
+        // Generate key for AES using vue-cryptojs
+        const keySize = 256 / 32; // AES-256
+        const key = CryptoJS.lib.WordArray.random(keySize).toString();
+        // TODO: Encrypt the file using AES and store it in the database
+        // TODO: Retrieve the identifier of stored file to link with the key
+        // Generate dummy identifier for file
+        const fileId = Math.random().toString(36).substring(7);
+        // Encrypt the key using the sessionCipher
+        const encryptedKey = await sessionCipher.encrypt(
+          Buffer.from(key).buffer
         );
-        console.log(encryptedFile);
         // Send file to server to store in database
-        const response = await fetch("http://localhost:5000/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            file: encryptedFile,
-          }),
+        const response = await fetch(
+          "http://192.168.29.215:5000/api/key/upload",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              file: fileId,
+              companionAddress: localStorage.getItem("companionAddress"),
+              username: localStorage.getItem("username"),
+              key: encryptedKey,
+            }),
+          }
+        );
+        console.log({
+          file: fileId,
+          companionAddress: localStorage.getItem("companionAddress"),
+          key: encryptedKey,
+          keyPlain: key,
         });
       } catch (err) {
         console.log(err.message);
