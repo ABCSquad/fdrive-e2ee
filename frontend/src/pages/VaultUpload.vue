@@ -2,6 +2,7 @@
   <div class="h-full w-full">
     <div class="h-full flex flex-col justify-center items-center">
       <input type="file" @change="uploadFile" />
+      <button @click="getKeys">Get files</button>
       <pre>{{ token }}</pre>
     </div>
   </div>
@@ -23,6 +24,20 @@ export default {
     size: 300,
   }),
   methods: {
+    async getKeys() {
+      // Retrieve companionAddress
+      const companionAddress = localStorage.getItem("companionAddress");
+      // Create signal protocol address
+      const address = new window.libsignal.SignalProtocolAddress.fromString(
+        companionAddress
+      );
+      // Retrieve file keys from server
+      const response = await fetch(
+        `http://192.168.29.215:5000/api/user/${address.getName()}/${address.getDeviceId()}/key`
+      );
+      const responseData = await response.json();
+      console.log(responseData.data);
+    },
     async uploadFile($event) {
       try {
         const file = $event.target.files[0];
