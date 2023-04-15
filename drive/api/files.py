@@ -25,7 +25,7 @@ def if_folder_exists(folder_name, parent):
         return existing_folder.name
 
 @frappe.whitelist()
-def upload_file(fullpath=None, parent=None):
+def upload_file(fullpath=None, parent=None,):
     """
     Accept chunked file contents via a multipart upload, store the file on
     disk, and insert a corresponding DriveEntity doc.

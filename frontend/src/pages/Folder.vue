@@ -710,6 +710,11 @@ export default {
                 label: this.isVault ? "FDrive" : isHome ? "Home" : entity.name,
                 route: isHome ? "/" : `/folder/${entity.name}`,
               });
+            } else if (this.isVault) {
+              breadcrumbs.push({
+                label: entity.title,
+                route: `/vault/${entity.name}`,
+              });
             } else {
               breadcrumbs.push({
                 label: entity.title,
