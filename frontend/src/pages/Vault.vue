@@ -60,7 +60,7 @@
 </template>
 
 <script>
-import { Button, FeatherIcon } from "frappe-ui";
+import { Button } from "frappe-ui";
 import QrcodeVue from "qrcode.vue";
 import { Buffer } from "buffer";
 import toArrayBuffer from "to-arraybuffer";
@@ -71,7 +71,7 @@ import FrappeLogo from "@/components/FrappeLogo.vue";
 export default {
   name: "Vault",
   // eslint-disable-next-line vue/no-reserved-component-names
-  components: { Button, QrcodeVue, FrappeLogo, FeatherIcon },
+  components: { Button, QrcodeVue, FrappeLogo },
   data: () => ({
     token: "tinyurl.com/3acwfenx",
     size: 400,

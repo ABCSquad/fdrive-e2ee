@@ -364,55 +364,6 @@ export default {
       ].filter((item) => item.sortable);
     },
   },
-  methods: {
-    openEntity(entity) {
-      if (entity.is_group) {
-        this.selectedEntities = [];
-        this.$router.push({
-          name: "Folder",
-          params: { entityName: entity.name },
-        });
-      } else {
-        this.previewEntity = entity;
-        this.showPreview = true;
-      }
-    },
-    hidePreview() {
-      this.showPreview = false;
-      this.previewEntity = null;
-    },
-    toggleEntityContext(event) {
-      if (!event) this.showEntityContext = false;
-      else {
-        this.hidePreview();
-        this.showEntityContext = true;
-        this.showEmptyEntityContextMenu = false;
-        this.entityContext = event;
-      }
-    },
-    toggleEmptyContext(event) {
-      if (!event) {
-        this.showEntityContext = false;
-        this.showEmptyEntityContextMenu = false;
-      } else if (this.selectedEntities.length === 0) {
-        this.selectedEntities = [];
-        this.hidePreview();
-        this.showEntityContext = false;
-        this.showEmptyEntityContextMenu = true;
-        this.entityContext = event;
-      } else if (this.selectedEntities.length > 0) {
-        this.hidePreview();
-        this.showEntityContext = true;
-        this.showEmptyEntityContextMenu = false;
-        this.entityContext = event;
-      }
-    },
-    closeContextMenu() {
-      this.showEntityContext = false;
-      this.showEmptyEntityContextMenu = false;
-      this.entityContext = undefined;
-    },
-  },
 
   mounted() {
     window.addEventListener(
@@ -535,6 +486,56 @@ export default {
     this.$store.commit("setHasWriteAccess", false);
     this.dropzone.destroy();
   },
+  methods: {
+    openEntity(entity) {
+      if (entity.is_group) {
+        this.selectedEntities = [];
+        this.$router.push({
+          name: "Folder",
+          params: { entityName: entity.name },
+        });
+      } else {
+        this.previewEntity = entity;
+        this.showPreview = true;
+      }
+    },
+    hidePreview() {
+      this.showPreview = false;
+      this.previewEntity = null;
+    },
+    toggleEntityContext(event) {
+      if (!event) this.showEntityContext = false;
+      else {
+        this.hidePreview();
+        this.showEntityContext = true;
+        this.showEmptyEntityContextMenu = false;
+        this.entityContext = event;
+      }
+    },
+    toggleEmptyContext(event) {
+      if (!event) {
+        this.showEntityContext = false;
+        this.showEmptyEntityContextMenu = false;
+      } else if (this.selectedEntities.length === 0) {
+        this.selectedEntities = [];
+        this.hidePreview();
+        this.showEntityContext = false;
+        this.showEmptyEntityContextMenu = true;
+        this.entityContext = event;
+      } else if (this.selectedEntities.length > 0) {
+        this.hidePreview();
+        this.showEntityContext = true;
+        this.showEmptyEntityContextMenu = false;
+        this.entityContext = event;
+      }
+    },
+    closeContextMenu() {
+      this.showEntityContext = false;
+      this.showEmptyEntityContextMenu = false;
+      this.entityContext = undefined;
+    },
+  },
+
   resources: {
     moveEntity() {
       return {

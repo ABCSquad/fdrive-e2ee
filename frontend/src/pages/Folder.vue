@@ -142,6 +142,10 @@ export default {
       required: false,
       default: "",
     },
+    isVault: {
+      type: Boolean,
+      required: true,
+    },
   },
   data: () => ({
     dropzone: null,
@@ -415,6 +419,53 @@ export default {
       ].filter((item) => item.sortable);
     },
   },
+  watch: {
+    async entityName() {
+      await this.$resources.folderAccess.fetch();
+      this.$store.commit(
+        "setHasWriteAccess",
+        !!this.$resources.folderAccess.data?.write
+      );
+      this.selectedEntities = [];
+      if (!this.dropzone && this.$store.state.hasWriteAccess)
+        this.initializeDropzone();
+    },
+  },
+
+  async mounted() {
+    window.addEventListener(
+      "dragover",
+      function (e) {
+        e = e || event;
+        e.preventDefault();
+      },
+      false
+    );
+    window.addEventListener(
+      "drop",
+      function (e) {
+        e = e || event;
+        e.preventDefault();
+      },
+      false
+    );
+
+    await this.$resources.folderAccess.fetch();
+    this.$store.commit(
+      "setHasWriteAccess",
+      !!this.$resources.folderAccess.data?.write
+    );
+    let componentContext = this;
+    this.emitter.on("fetchFolderContents", () => {
+      componentContext.$resources.folderContents.fetch();
+    });
+    if (this.$store.state.hasWriteAccess) this.initializeDropzone();
+  },
+
+  unmounted() {
+    this.$store.commit("setHasWriteAccess", false);
+    if (this.dropzone) this.dropzone.destroy();
+  },
   methods: {
     initializeDropzone() {
       let componentContext = this;
@@ -560,53 +611,6 @@ export default {
       this.entityContext = undefined;
     },
   },
-  watch: {
-    async entityName() {
-      await this.$resources.folderAccess.fetch();
-      this.$store.commit(
-        "setHasWriteAccess",
-        !!this.$resources.folderAccess.data?.write
-      );
-      this.selectedEntities = [];
-      if (!this.dropzone && this.$store.state.hasWriteAccess)
-        this.initializeDropzone();
-    },
-  },
-
-  async mounted() {
-    window.addEventListener(
-      "dragover",
-      function (e) {
-        e = e || event;
-        e.preventDefault();
-      },
-      false
-    );
-    window.addEventListener(
-      "drop",
-      function (e) {
-        e = e || event;
-        e.preventDefault();
-      },
-      false
-    );
-
-    await this.$resources.folderAccess.fetch();
-    this.$store.commit(
-      "setHasWriteAccess",
-      !!this.$resources.folderAccess.data?.write
-    );
-    let componentContext = this;
-    this.emitter.on("fetchFolderContents", () => {
-      componentContext.$resources.folderContents.fetch();
-    });
-    if (this.$store.state.hasWriteAccess) this.initializeDropzone();
-  },
-
-  unmounted() {
-    this.$store.commit("setHasWriteAccess", false);
-    if (this.dropzone) this.dropzone.destroy();
-  },
 
   resources: {
     folderAccess() {
@@ -691,6 +695,7 @@ export default {
           entity_name: this.entityName,
         },
         onSuccess(data) {
+          console.log("get entity in path", data, this.isVault);
           this.isSharedFolder = data.is_shared;
           let breadcrumbs = [];
           if (this.isSharedFolder)
@@ -702,7 +707,7 @@ export default {
             if (index === 0) {
               const isHome = entity.owner === this.userId;
               breadcrumbs.push({
-                label: isHome ? "Home" : entity.title,
+                label: this.isVault ? "FDrive" : isHome ? "Home" : entity.name,
                 route: isHome ? "/" : `/folder/${entity.name}`,
               });
             } else {
