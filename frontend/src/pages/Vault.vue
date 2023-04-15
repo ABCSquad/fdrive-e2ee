@@ -35,7 +35,7 @@
         <qrcode-vue :value="token" :size="size" level="H" /> -->
         <div class="w-100 h-100 relative z-0">
           <qrcode-vue
-            :class="!isGenerated && 'blur-sm'"
+            :class="!isGenerated && 'blur-md'"
             :value="token"
             :size="size"
             level="H" />
@@ -43,8 +43,14 @@
             v-if="!isGenerated"
             class="w-100 h-100 absolute inset-0 flex justify-center items-center z-10">
             <!-- <pre>{{ token }}</pre> -->
-            <Button appearance="primary" @click="generateQR()">
-              Generate QR
+            <Button
+              icon-right="lock"
+              appearance="primary"
+              @click="generateQR()">
+              Access Vault
+              <!-- <FeatherIcon
+                name="lock"
+                class="stroke-1.5 w-4 h-4 text-white-700" /> -->
             </Button>
           </div>
         </div>
@@ -54,7 +60,7 @@
 </template>
 
 <script>
-import { Button } from "frappe-ui";
+import { Button, FeatherIcon } from "frappe-ui";
 import QrcodeVue from "qrcode.vue";
 import { Buffer } from "buffer";
 import toArrayBuffer from "to-arraybuffer";
@@ -65,7 +71,7 @@ import FrappeLogo from "@/components/FrappeLogo.vue";
 export default {
   name: "Vault",
   // eslint-disable-next-line vue/no-reserved-component-names
-  components: { Button, QrcodeVue, FrappeLogo },
+  components: { Button, QrcodeVue, FrappeLogo, FeatherIcon },
   data: () => ({
     token: "tinyurl.com/3acwfenx",
     size: 400,
