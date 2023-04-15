@@ -1,9 +1,54 @@
 <template>
   <div class="h-full w-full">
-    <div class="h-full flex flex-col justify-center items-center">
+    <!-- <div class="h-full flex flex-col justify-center items-center">
       <Button @click="generateQR()">Generate QR</Button>
       <pre>{{ token }}</pre>
       <qrcode-vue :value="token" :size="size" level="H" />
+    </div> -->
+    <div class="h-full flex flex-row justify-center items-center">
+      <div class="flex flex-col justify-start items-center p-5">
+        <div class="qr-info-screen bg-grey">
+          <div class="flex flex-row justify-start items-center">
+            <FrappeLogo class="h-5 w-auto mr-3" />
+            <div class="text-2xl font-bold qr-heading">
+              Start Using FDrive Vault on your computer.
+            </div>
+          </div>
+
+          <div class="qr-steps mt-10 p-5">
+            <ol class="list-decimal">
+              <li class="mt-2">
+                Download or Open FDrive Authenticator on your mobile device
+              </li>
+              <li class="mt-2">Click on the Floating Action Button</li>
+              <li class="mt-2">Select the Scan QR Code Option</li>
+              <li class="mt-2">
+                Point your phone to this screen to capture the QR code
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col justify-start items-center ml-5 p-5 qr-field">
+        <!-- <Button @click="generateQR()">Generate QR</Button>
+        
+        <qrcode-vue :value="token" :size="size" level="H" /> -->
+        <div class="w-100 h-100 relative z-0">
+          <qrcode-vue
+            :class="!isGenerated && 'blur-sm'"
+            :value="token"
+            :size="size"
+            level="H" />
+          <div
+            v-if="!isGenerated"
+            class="w-100 h-100 absolute inset-0 flex justify-center items-center z-10">
+            <!-- <pre>{{ token }}</pre> -->
+            <Button appearance="primary" @click="generateQR()">
+              Generate QR
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -15,14 +60,16 @@ import { Buffer } from "buffer";
 import toArrayBuffer from "to-arraybuffer";
 import ByteBuffer from "bytebuffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
+import FrappeLogo from "@/components/FrappeLogo.vue";
 
 export default {
   name: "Vault",
   // eslint-disable-next-line vue/no-reserved-component-names
-  components: { Button, QrcodeVue },
+  components: { Button, QrcodeVue, FrappeLogo },
   data: () => ({
-    token: null,
-    size: 300,
+    token: "tinyurl.com/3acwfenx",
+    size: 400,
+    isGenerated: false,
   }),
   methods: {
     async generateQR() {
@@ -38,6 +85,7 @@ export default {
         });
 
         if (!res.ok) {
+          this.isGenerated = false;
           const message = `An error has occured: ${res.status} - ${res.statusText}`;
           throw new Error(message);
         }
@@ -54,6 +102,7 @@ export default {
           data: data,
         };
 
+        this.isGenerated = true;
         this.token = result.data.data;
 
         // Connect to websocket connection
