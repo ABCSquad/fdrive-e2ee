@@ -47,21 +47,27 @@
                 getIconUrl(formatMimeType(getIconFromIdentifier(item.name)))
               "
               class="h-14"
+              :class="getIfDecryptable(item.name) && 'blur-sm'"
               :draggable="false" />
           </div>
           <div class="px-3.5 md:h-16 content-center grid">
-            <h3 class="truncate text-[14px] font-medium">
+            <h3
+              class="truncate text-[14px] font-medium"
+              :class="getIfDecryptable(item.name) && 'blur-sm'">
               {{ getNameFromIndentifier(item.name) }}
             </h3>
             <div
               class="truncate text-sm text-gray-600 flex mt-1 place-items-center">
               <img
                 :src="getIconUrl(formatMimeType('jpeg'))"
-                class="h-3.5 mr-1.5" />
+                class="h-3.5 mr-1.5"
+                :class="getIfDecryptable(item.name) && 'p-1 blur-sm'" />
               <div class="w-full flex flex-row justify-between items-center">
-                <p>{{ getFileSubtitle(item.name) }}</p>
+                <p :class="getIfDecryptable(item.name) && 'blur-sm'">
+                  {{ getFileSubtitle(item.name) }}
+                </p>
                 <!-- <p>{{ getIfDecryptable(item.name) }}</p> -->
-                <Tooltip text="Please check your Phone to Decrypt.">
+                <Tooltip text="Waiting for this file. Check your phone.">
                   <FeatherIcon
                     v-if="getIfDecryptable(item.name)"
                     name="lock"
