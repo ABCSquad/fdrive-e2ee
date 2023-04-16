@@ -13,6 +13,7 @@ import { Button } from "frappe-ui";
 import { Buffer } from "buffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
 import CryptoJS from "crypto-js";
+import _ from "lodash";
 let globalStore, sessionCipher;
 
 export default {
@@ -25,8 +26,6 @@ export default {
   }),
   methods: {
     async getKeys() {
-      // Call initSession
-      this.initSession();
       // Global variable
       let decryptedKeys = {};
       // Retrieve companionAddress
@@ -49,11 +48,15 @@ export default {
       );
       const responseData = await response.json();
       console.log(responseData.data);
+      // Update global store
+      this.reconstructStore();
       // Create session cipher to decrypt
       const sessionCipher = new window.libsignal.SessionCipher(
         globalStore,
         primaryAddress
       );
+      // Update local storage store content
+      this.storingSignalStore();
       const fileKeys = responseData.data.keys;
       // Filter fileKeys.keys to have their own companionAddress objects
       fileKeys.forEach((keyObject) => {
@@ -80,9 +83,6 @@ export default {
     async uploadFile($event) {
       try {
         const file = $event.target.files[0];
-        // Logging the cipher and store
-        this.initSession();
-        console.log(sessionCipher, globalStore);
         // Generate key for AES using vue-cryptojs
         const keySize = 256 / 32; // AES-256
         const key = CryptoJS.lib.WordArray.random(keySize).toString();
@@ -90,10 +90,21 @@ export default {
         // TODO: Retrieve the identifier of stored file to link with the key
         // Generate dummy identifier for file
         const fileId = Math.random().toString(36).substring(7);
+        // Reconstruct store
+        this.reconstructStore();
+        // Create session cipher to encrypt
+        const sessionCipher = new window.libsignal.SessionCipher(
+          globalStore,
+          new window.libsignal.SignalProtocolAddress.fromString(
+            localStorage.getItem("primaryAddress")
+          )
+        );
         // Encrypt the key using the sessionCipher
         const encryptedKey = await sessionCipher.encrypt(
           Buffer.from(key).buffer
         );
+        // Update local storage store content
+        this.storingSignalStore();
         // Send file to server to store in database
         const response = await fetch(
           "http://192.168.29.215:5000/api/key/upload",
@@ -117,10 +128,10 @@ export default {
           keyPlain: key,
         });
       } catch (err) {
-        console.log(err.message);
+        console.log(err);
       }
     },
-    async initSession() {
+    async reconstructStore() {
       try {
         // Retrieve store content from local storage
         let store = JSON.parse(localStorage.getItem("companionSignalStore"));
@@ -147,18 +158,28 @@ export default {
         );
         // Setting global store as the newly created store
         globalStore = companionSignalStore;
-        // Creating a sessionCipher object
-        sessionCipher = new window.libsignal.SessionCipher(
-          globalStore,
-          primaryAddress
-        );
       } catch (err) {
         console.log(err);
       }
     },
+    async storingSignalStore() {
+      console.log("storingSignalStore", globalStore);
+      // Create copy of store
+      let storeContents = _.cloneDeep(globalStore.store);
+      // Convert ArrayBuffer identityKeyPair to base64
+      storeContents.identityKey.pubKey = Buffer.from(
+        storeContents.identityKey.pubKey
+      ).toString("base64");
+      storeContents.identityKey.privKey = Buffer.from(
+        storeContents.identityKey.privKey
+      ).toString("base64");
+      // Save store to local storage
+      localStorage.setItem(
+        "companionSignalStore",
+        JSON.stringify(storeContents)
+      );
+    },
   },
-  mounted() {
-    this.initSession();
-  },
+  mounted() {},
 };
 </script>
