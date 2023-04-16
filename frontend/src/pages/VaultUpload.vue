@@ -25,23 +25,63 @@ export default {
   }),
   methods: {
     async getKeys() {
+      // Call initSession
+      this.initSession();
+      // Global variable
+      let decryptedKeys = {};
       // Retrieve companionAddress
-      const companionAddress = localStorage.getItem("companionAddress");
+      const companionAddressString = localStorage.getItem("companionAddress");
       // Create signal protocol address
-      const address = new window.libsignal.SignalProtocolAddress.fromString(
-        companionAddress
-      );
+      const companionAddress =
+        new window.libsignal.SignalProtocolAddress.fromString(
+          companionAddressString
+        );
+      // Retrieve primary address
+      const primaryAddressString = localStorage.getItem("primaryAddress");
+      // Create signal protocol address
+      const primaryAddress =
+        new window.libsignal.SignalProtocolAddress.fromString(
+          primaryAddressString
+        );
       // Retrieve file keys from server
       const response = await fetch(
-        `http://192.168.29.215:5000/api/user/${address.getName()}/${address.getDeviceId()}/key`
+        `http://192.168.29.215:5000/api/user/${companionAddress.getName()}/${companionAddress.getDeviceId()}/key`
       );
       const responseData = await response.json();
       console.log(responseData.data);
+      // Create session cipher to decrypt
+      const sessionCipher = new window.libsignal.SessionCipher(
+        globalStore,
+        primaryAddress
+      );
+      const fileKeys = responseData.data.keys;
+      // Filter fileKeys.keys to have their own companionAddress objects
+      fileKeys.forEach((keyObject) => {
+        keyObject.keys = keyObject.keys.filter(
+          (key) => key.companionAddress === companionAddressString
+        );
+      });
+      console.log(fileKeys);
+      // Decrypt the keys
+      await Promise.all(
+        fileKeys.map(async (keyObject) => {
+          const decryptedKey = await sessionCipher.decryptWhisperMessage(
+            keyObject.keys[0].key.body,
+            "binary"
+          );
+          // Convert to string
+          const decryptedKeyString = Buffer.from(decryptedKey).toString("utf8");
+          console.log(keyObject.file, decryptedKeyString);
+          // Store decrypted keys in global variable
+          decryptedKeys[keyObject.file] = decryptedKeyString;
+        })
+      );
     },
     async uploadFile($event) {
       try {
         const file = $event.target.files[0];
         // Logging the cipher and store
+        this.initSession();
         console.log(sessionCipher, globalStore);
         // Generate key for AES using vue-cryptojs
         const keySize = 256 / 32; // AES-256
