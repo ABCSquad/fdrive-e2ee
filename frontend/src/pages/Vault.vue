@@ -88,7 +88,7 @@ export default {
     async generateQR() {
       try {
         // Connect to websocket connection
-        const socket = new WebSocket(`ws://localhost:7071/initiate`);
+        const socket = new WebSocket(`ws://192.168.29.215:7071/initiate`);
         // Create a signal store
         const companionSignalStore = new SignalProtocolStore();
         let primaryAddress, companionAddress;

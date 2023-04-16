@@ -21,9 +21,7 @@
       </div>
       <div class="vault-upload">
         <input ref="fileUpload" type="file" />
-        <Button @click="() => encrypt($refs.fileUpload.files[0])">
-          Encrypt
-        </Button>
+        <Button @click="uploadFile">Encrypt</Button>
       </div>
     </div>
 
@@ -84,19 +82,20 @@ export default {
       return uInt8Array;
     },
 
-    encrypt(file) {
+    encrypt(file, key) {
+      let fileId;
       var reader = new FileReader();
       reader.onload = () => {
-        var key = "1234567887654321";
         var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
         var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
 
         var fileEnc = new Blob([encrypted]); // Create blob from string
         var filename = file.name + ".enc";
 
-        this.upload(fileEnc, filename);
+        fileId = this.upload(fileEnc, filename);
       };
       reader.readAsArrayBuffer(file);
+      return fileId;
     },
 
     decrypt(file) {
@@ -128,6 +127,7 @@ export default {
         .then((snapshot) => {
           console.log("uploaded", { identifier: snapshot.metadata.name });
           this.getAllFiles();
+          return snapshot.metadata.name;
         })
         .catch((err) => {
           console.log(err);
@@ -205,16 +205,17 @@ export default {
         })
       );
     },
-    async uploadFile($event) {
+    async uploadFile() {
       try {
-        const file = $event.target.files[0];
+        const file = this.$refs.fileUpload.files[0];
         // Generate key for AES using vue-cryptojs
         const keySize = 256 / 32; // AES-256
         const key = CryptoJS.lib.WordArray.random(keySize).toString();
         // TODO: Encrypt the file using AES and store it in the database
-        // TODO: Retrieve the identifier of stored file to link with the key
+        const fileId = this.encrypt(file, key);
+        console.log(fileId);
         // Generate dummy identifier for file
-        const fileId = Math.random().toString(36).substring(7);
+        // const fileId = Math.random().toString(36).substring(7);
         // Reconstruct store
         this.reconstructStore();
         // Create session cipher to encrypt
