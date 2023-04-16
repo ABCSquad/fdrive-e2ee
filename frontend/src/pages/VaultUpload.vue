@@ -31,7 +31,7 @@
         :key="index"
         class="flex flex-col ml-5">
         <div>
-          {{ item.name }}
+          {{ getNameFromIndentifier(item.name) }}
         </div>
       </div>
     </div>
@@ -62,10 +62,13 @@ export default {
     this.getAllFiles();
   },
   methods: {
-    getIndentifier(filename) {
+    getNameFromIndentifier(filename) {
       const re = /\w{8}-\w{4}-\w{4}-\w{4}-\w{12}/;
-      const result = filename.match(re);
-      console.log(result[0]);
+      let result = filename.replace(re, "");
+      while (result.charAt(0) === "_") {
+        result = result.substring(1);
+      }
+      return result;
     },
 
     convertWordArrayToUint8Array(wordArray) {
@@ -135,7 +138,7 @@ export default {
           console.log("uploaded", snapshot);
           this.getAllFiles();
 
-          return this.getIndentifier(snapshot.metadata.name);
+          return snapshot.metadata.name;
         })
         .catch((err) => {
           console.log(err);
