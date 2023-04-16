@@ -63,8 +63,7 @@
 import { Button } from "frappe-ui";
 import QrcodeVue from "qrcode.vue";
 import { Buffer } from "buffer";
-import toArrayBuffer from "to-arraybuffer";
-import ByteBuffer from "bytebuffer";
+import platform from "platform";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
 import FrappeLogo from "@/components/FrappeLogo.vue";
 
@@ -78,179 +77,133 @@ export default {
     isGenerated: false,
   }),
   methods: {
+    async generateIdentity(store) {
+      const result = await Promise.all([
+        window.libsignal.KeyHelper.generateIdentityKeyPair(),
+        window.libsignal.KeyHelper.generateRegistrationId(),
+      ]);
+      store.put("identityKey", result[0]);
+      store.put("registrationId", result[1]);
+    },
     async generateQR() {
       try {
-        const res = await fetch(`http://localhost:5000/api/session/initiate`, {
-          method: "GET",
-          headers: {
-            Connection: "Upgrade",
-            Upgrade: "websocket",
-            "Sec-WebSocket-Version": 13,
-            "Sec-WebSocket-Key": "dGhlIHNhbXBsZSBub25jZQ==",
-          },
-        });
-
-        if (!res.ok) {
-          this.isGenerated = false;
-          const message = `An error has occured: ${res.status} - ${res.statusText}`;
-          throw new Error(message);
-        }
-
-        const data = await res.json();
-
-        const result = {
-          status: res.status + "-" + res.statusText,
-          headers: {
-            "Content-Type": res.headers.get("Content-Type"),
-            "Content-Length": res.headers.get("Content-Length"),
-          },
-          length: res.headers.get("Content-Length"),
-          data: data,
-        };
-
-        this.isGenerated = true;
-        this.token = result.data.data;
-
         // Connect to websocket connection
-        const socket = new WebSocket(
-          `ws://localhost:5000/companion/${this.token}`
-        );
+        const socket = new WebSocket(`ws://192.168.29.215:7071/initiate`);
+        // Create a signal store
+        const companionSignalStore = new SignalProtocolStore();
+        let primaryAddress, companionAddress;
         socket.onopen = () => {
           console.log("Connected to websocket");
         };
         socket.onmessage = async (event) => {
           // Determine type of message
-          const receivedMessage = JSON.parse(event.data);
-          // If message is a greeting
-          if (receivedMessage.type === "greeting") {
-            console.log(`Server says: ${receivedMessage.message}`);
+          const message = JSON.parse(event.data);
+          // If success message
+          if (message.type === "success") {
+            this.token = message.token;
           }
-          // If message is a prekey bundle
-          if (receivedMessage.type === "primaryPreKeyBundle") {
-            // Create a new signalStores
-            const primarySignalStore = new SignalProtocolStore();
-            const companionSignalStore = new SignalProtocolStore();
-
-            // Get primary device related data
-            const primarySignalProtocolAddress =
-              window.libsignal.SignalProtocolAddress.fromString(
-                receivedMessage.primarySignalProtocolAddress
-              );
-            let primaryPreKeyBundle = receivedMessage.preKeyBundle;
-            // Convert all keys in preKeyBundle to Buffers
-            primaryPreKeyBundle.identityKey = Buffer.from(
-              primaryPreKeyBundle.identityKey,
-              "base64"
-            ).buffer;
-            primaryPreKeyBundle.signedPreKey.publicKey = Buffer.from(
-              primaryPreKeyBundle.signedPreKey.publicKey,
-              "base64"
-            ).buffer;
-            primaryPreKeyBundle.signedPreKey.signature = Buffer.from(
-              primaryPreKeyBundle.signedPreKey.signature,
-              "base64"
-            ).buffer;
-            primaryPreKeyBundle.preKey.publicKey = Buffer.from(
-              primaryPreKeyBundle.preKey.publicKey,
-              "base64"
-            ).buffer;
-            console.log(primaryPreKeyBundle);
-            // Save primary device identity in signalStore
-            primarySignalStore.put(
-              "identityKey",
-              primaryPreKeyBundle.identityKey
+          if (message.type === "primaryInformation") {
+            // Generate identity
+            await this.generateIdentity(companionSignalStore);
+            // Create primary address from string
+            primaryAddress = window.libsignal.SignalProtocolAddress.fromString(
+              message.data.primarySignalProtocolAddress
             );
-
-            // Functions
-            const generateIdentity = async () => {
-              const result = await Promise.all([
-                window.libsignal.KeyHelper.generateIdentityKeyPair(),
-                window.libsignal.KeyHelper.generateRegistrationId(),
-              ]);
-              return result;
-            };
-
-            // Create necessary compaion related data
-            // Signal Protocol Address
-            const companionSignalProtocolAddress =
-              new window.libsignal.SignalProtocolAddress(
-                receivedMessage.primaryUsername,
-                2
-              );
-            // identityKeyPair and registrationId
-            const [companionIdentityKeyPair, companionRegistrationId] =
-              await generateIdentity();
-            // preKeyId and preKeyPair
-            const companionPreKey =
-              await window.libsignal.KeyHelper.generatePreKey(
-                Math.ceil(Math.random() * 100000)
-              );
-            console.log(companionPreKey);
-            const companionSignedPreKey =
-              await window.libsignal.KeyHelper.generateSignedPreKey(
-                companionIdentityKeyPair,
-                Math.ceil(Math.random() * 100000)
-              );
-            console.log(companionSignedPreKey);
-            // Save companion related data to signalStore
-            companionSignalStore.put("identityKey", companionIdentityKeyPair);
-            companionSignalStore.put("registrationId", companionRegistrationId);
-            await companionSignalStore.storePreKey(
-              companionPreKey.keyId,
-              companionPreKey.keyPair
+            // Generate companion address
+            companionAddress = new window.libsignal.SignalProtocolAddress(
+              await primaryAddress.getName(),
+              await companionSignalStore.getLocalRegistrationId()
             );
-            await companionSignalStore.storeSignedPreKey(
-              companionSignedPreKey.keyId,
-              companionSignedPreKey.keyPair
-            );
-            console.log(companionSignalStore);
-
+            // Create session builder
             const sessionBuilder = new window.libsignal.SessionBuilder(
               companionSignalStore,
-              primarySignalProtocolAddress
+              primaryAddress
             );
-            const sessionPromise =
-              sessionBuilder.processPreKey(primaryPreKeyBundle);
+            // Convert base64 strings to buffers in preKeyBundle
+            let preKeyBundle = Object.assign({}, message.data.preKeyBundle);
+            preKeyBundle.identityKey = Buffer.from(
+              preKeyBundle.identityKey,
+              "base64"
+            ).buffer;
+            preKeyBundle.preKey.publicKey = Buffer.from(
+              preKeyBundle.preKey.publicKey,
+              "base64"
+            ).buffer;
+            preKeyBundle.signedPreKey.publicKey = Buffer.from(
+              preKeyBundle.signedPreKey.publicKey,
+              "base64"
+            ).buffer;
+            preKeyBundle.signedPreKey.signature = Buffer.from(
+              preKeyBundle.signedPreKey.signature,
+              "base64"
+            ).buffer;
+            await sessionBuilder.processPreKey(preKeyBundle);
 
-            sessionPromise.then(() => {
-              console.log("Sending initial message to primary...");
-              const companionSessionCipher = new window.libsignal.SessionCipher(
-                companionSignalStore,
-                primarySignalProtocolAddress
-              );
-
-              let plaintextMessage = Buffer.from(
-                "Filename: test.txt\nContent: Hello World!",
-                "utf-8"
-              ).buffer;
-              companionSessionCipher
-                .encrypt(plaintextMessage)
-                .then((ciphertext) => {
-                  const preKeyWhisperMessageToSend = {
-                    type: "preKeyWhisperMessage",
-                    preKeyWhisperMessage: ciphertext,
-                  };
-                  // Save address and store to localStorage
-                  localStorage.setItem(
-                    "primarySignalProtocolAddress",
-                    primarySignalProtocolAddress.toString()
-                  );
-                  localStorage.setItem(
-                    "companionSignalStore",
-                    JSON.stringify(companionSignalStore)
-                  );
-                  socket.send(JSON.stringify(preKeyWhisperMessageToSend));
-                })
-                .catch((err) => {
-                  console.log("Error encrypting message");
-                  console.log(err);
-                });
-            });
-
-            sessionPromise.catch((err) => {
-              console.log("Session Promise Rejected");
-              console.log(err);
-            });
+            const preKeyWhisperMessage = Buffer.from(
+              "Hey Jude, don't make it bad"
+            ).buffer;
+            const sessionCipher = new window.libsignal.SessionCipher(
+              companionSignalStore,
+              primaryAddress
+            );
+            const ciphertext = await sessionCipher.encrypt(
+              preKeyWhisperMessage
+            );
+            socket.send(
+              JSON.stringify({
+                type: "preKeyWhisperMessage",
+                data: {
+                  ciphertext: ciphertext,
+                  companionSignalProtocolAddress: companionAddress.toString(),
+                  deviceInfo: {
+                    name: platform.name,
+                    version: platform.version,
+                    os: platform.os,
+                    lastLogin: new Date().toISOString(),
+                    location: "Mumbai, IN",
+                  },
+                },
+              })
+            );
+          }
+          if (message.type === "whisperMessage") {
+            // Decrypt message
+            const sessionCipher = new window.libsignal.SessionCipher(
+              companionSignalStore,
+              primaryAddress
+            );
+            const decryptedMessage = await sessionCipher.decryptWhisperMessage(
+              message.data.whisperMessage.body,
+              "binary"
+            );
+            console.log(
+              "Decrypted message",
+              Buffer.from(decryptedMessage).toString("utf8")
+            );
+            // Create copy of store
+            let storeContents = Object.assign({}, companionSignalStore.store);
+            // Convert ArrayBuffer identityKeyPair to base64
+            storeContents.identityKey.pubKey = Buffer.from(
+              storeContents.identityKey.pubKey
+            ).toString("base64");
+            storeContents.identityKey.privKey = Buffer.from(
+              storeContents.identityKey.privKey
+            ).toString("base64");
+            // Save store to local storage
+            localStorage.setItem(
+              "companionSignalStore",
+              JSON.stringify(storeContents)
+            );
+            // Save username to local storage
+            localStorage.setItem("username", primaryAddress.getName());
+            // Save primaryAddress to local storage
+            localStorage.setItem("primaryAddress", primaryAddress.toString());
+            // Save companionAddress to local storage
+            localStorage.setItem(
+              "companionAddress",
+              companionAddress.toString()
+            );
+            console.log("Store contents saved to local storage");
           }
         };
         socket.onclose = (event) => {
