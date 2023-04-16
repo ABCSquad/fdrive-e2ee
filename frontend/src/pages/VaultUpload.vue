@@ -94,6 +94,7 @@ export default {
   }),
   mounted() {
     this.getAllFiles();
+    this.getKeys();
   },
 
   methods: {
