@@ -37,7 +37,8 @@
 
     <div class="text-gray-600 font-medium mt-8">Files</div>
 
-    <div class="h-full w-full flex flex-row jusitfy-evenly gap-5 mt-5">
+    <div
+      class="w-full flex flex-row flex-wrap jusitfy-evenly items-start gap-5 mt-5">
       <div v-for="(item, index) in files" :key="index" class="flex flex-col">
         <div class="md:w-[212px] rounded-lg border group select-none entity">
           <div class="h-28 md:h-32 place-items-center grid">
@@ -108,14 +109,14 @@ export default {
       while (result.charAt(0) === "_") {
         result = result.substring(1);
       }
-      return result;
+      const encRemoved = result.substr(0, result.length - 4);
+      return encRemoved;
     },
 
     getIconFromIdentifier(filename) {
       // Remove .enc
       const encRemoved = filename.substr(0, filename.length - 4);
       const extension = encRemoved.split(".").pop();
-      console.log(extension);
       switch (extension) {
         case "jpeg":
           return "image";
