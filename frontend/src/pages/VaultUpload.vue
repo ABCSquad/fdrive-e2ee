@@ -1,21 +1,47 @@
 <template>
   <div class="h-full w-full">
-    <div class="h-full flex flex-col justify-center items-center">
-      <input ref="fileUpload" type="file" />
-      <Button @click="() => encrypt($refs.fileUpload.files[0])">Encrypt</Button>
+    <!-- <div class="w-full flex flex-row justify-end items-center">
       <input ref="fileUploadDecrypt" type="file" />
       <Button @click="testDecrypt">Decrypt</Button>
       <Button @click="getAllFiles">Get all files</Button>
-      <pre>{{ token }}</pre>
-      <div v-for="(item, index) in files" :key="index">
-        {{ item.name }}
+    </div> -->
+    <div class="header w-full flex flex-row justify-between">
+      <div class="vault-heading">
+        <div class="flex flex-row justify-start items-center">
+          <div>
+            <FeatherIcon
+              name="lock"
+              class="stroke-1.5 w-8 h-8 text-black-700" />
+          </div>
+          <div class="ml-3">
+            <div class="text-2xl font-bold">Secure Vault</div>
+            <div class="text-sm">End-to-end encryption</div>
+          </div>
+        </div>
+      </div>
+      <div class="vault-upload">
+        <input ref="fileUpload" type="file" />
+        <Button @click="() => encrypt($refs.fileUpload.files[0])">
+          Encrypt
+        </Button>
+      </div>
+    </div>
+
+    <div class="h-full w-full flex flex-row jusitfy-evenly mt-5">
+      <div
+        v-for="(item, index) in files"
+        :key="index"
+        class="flex flex-col ml-5">
+        <div>
+          {{ item.name }}
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { Button } from "frappe-ui";
+import { Button, FeatherIcon } from "frappe-ui";
 import { Buffer } from "buffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
 import CryptoJS from "crypto-js";
@@ -29,7 +55,7 @@ import { callbackify } from "util";
 export default {
   name: "VaultUpload",
   // eslint-disable-next-line vue/no-reserved-component-names
-  components: { Button },
+  components: { Button, FeatherIcon },
   data: () => ({
     files: [],
   }),
