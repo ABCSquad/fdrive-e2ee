@@ -19,19 +19,40 @@
           </div>
         </div>
       </div>
+
       <div class="vault-upload">
-        <input ref="fileUpload" type="file" />
-        <Button @click="uploadFile">Encrypt</Button>
+        <label>
+          <input ref="fileUpload" type="file" hidden @change="uploadFile" />
+          <Button>Upload a file</Button>
+        </label>
       </div>
     </div>
 
-    <div class="h-full w-full flex flex-row jusitfy-evenly mt-5">
-      <div
-        v-for="(item, index) in files"
-        :key="index"
-        class="flex flex-col ml-5">
-        <div>
-          {{ getNameFromIndentifier(item.name) }}
+    <div class="text-gray-600 font-medium mt-8">Files</div>
+
+    <div class="h-full w-full flex flex-row jusitfy-evenly gap-5 mt-5">
+      <div v-for="(item, index) in files" :key="index" class="flex flex-col">
+        <div class="md:w-[212px] rounded-lg border group select-none entity">
+          <div class="h-28 md:h-32 place-items-center grid">
+            <img
+              :src="
+                getIconUrl(formatMimeType(getIconFromIdentifier(item.name)))
+              "
+              class="h-14"
+              :draggable="false" />
+          </div>
+          <div class="px-3.5 md:h-16 content-center grid">
+            <h3 class="truncate text-[14px] font-medium">
+              {{ getNameFromIndentifier(item.name) }}
+            </h3>
+            <div
+              class="truncate text-sm text-gray-600 flex mt-1 place-items-center">
+              <img
+                :src="getIconUrl(formatMimeType('jpeg'))"
+                class="h-3.5 mr-1.5" />
+              <p>{{ getFileSubtitle(item.name) }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -45,6 +66,9 @@ import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolS
 import CryptoJS from "crypto-js";
 import { uuid } from "vue-uuid";
 import _ from "lodash";
+import getIconUrl from "@/utils/getIconUrl";
+import { formatMimeType } from "@/utils/format";
+
 let globalStore, sessionCipher;
 
 import { storage } from "../firebase.js";
@@ -55,12 +79,16 @@ export default {
   name: "VaultUpload",
   // eslint-disable-next-line vue/no-reserved-component-names
   components: { Button, FeatherIcon },
+  setup() {
+    return { getIconUrl, formatMimeType };
+  },
   data: () => ({
     files: [],
   }),
   mounted() {
     this.getAllFiles();
   },
+
   methods: {
     getNameFromIndentifier(filename) {
       const re = /\w{8}-\w{4}-\w{4}-\w{4}-\w{12}/;
@@ -69,6 +97,44 @@ export default {
         result = result.substring(1);
       }
       return result;
+    },
+
+    getIconFromIdentifier(filename) {
+      // Remove .enc
+      const encRemoved = filename.substr(0, filename.length - 4);
+      const extension = encRemoved.split(".").pop();
+      console.log(extension);
+      switch (extension) {
+        case "jpeg":
+          return "image";
+
+        case "mp4":
+          return "video";
+
+        case "mp3":
+          return "audio";
+
+        case "pdf":
+          return "pdf";
+
+        case "xlsx":
+          return "vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+        case "ppt":
+          return "vnd.openxmlformats-officedocument.presentationml.presentation";
+
+        case "docx":
+          return "vnd.openxmlformats-officedocument.wordprocessingml.document";
+        default:
+          return "unknown";
+      }
+    },
+
+    getFileSubtitle(file) {
+      let fileSubtitle = formatMimeType(this.getIconFromIdentifier(file));
+      fileSubtitle =
+        fileSubtitle.charAt(0).toUpperCase() + fileSubtitle.slice(1);
+      return `${fileSubtitle}`;
     },
 
     convertWordArrayToUint8Array(wordArray) {
@@ -217,9 +283,9 @@ export default {
         })
       );
     },
-    async uploadFile() {
+    async uploadFile(event) {
       try {
-        const file = this.$refs.fileUpload.files[0];
+        const file = event.target.files[0];
         // Generate key for AES using vue-cryptojs
         const keySize = 256 / 32; // AES-256
         const key = CryptoJS.lib.WordArray.random(keySize).toString();
