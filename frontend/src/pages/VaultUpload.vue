@@ -47,19 +47,25 @@
                 getIconUrl(formatMimeType(getIconFromIdentifier(item.name)))
               "
               class="h-14"
+              :class="getIfDecryptable(item.name) && 'blur-sm'"
               :draggable="false" />
           </div>
           <div class="px-3.5 md:h-16 content-center grid">
-            <h3 class="truncate text-[14px] font-medium">
+            <h3
+              class="truncate text-[14px] font-medium"
+              :class="getIfDecryptable(item.name) && 'blur-sm'">
               {{ getNameFromIndentifier(item.name) }}
             </h3>
             <div
               class="truncate text-sm text-gray-600 flex mt-1 place-items-center">
               <img
                 :src="getIconUrl(formatMimeType('jpeg'))"
-                class="h-3.5 mr-1.5" />
+                class="h-3.5 mr-1.5"
+                :class="getIfDecryptable(item.name) && 'p-1 blur-sm'" />
               <div class="w-full flex flex-row justify-between items-center">
-                <p>{{ getFileSubtitle(item.name) }}</p>
+                <p :class="getIfDecryptable(item.name) && 'blur-sm'">
+                  {{ getFileSubtitle(item.name) }}
+                </p>
                 <!-- <p>{{ getIfDecryptable(item.name) }}</p> -->
                 <Tooltip text="Please check your Phone to Decrypt.">
                   <FeatherIcon
@@ -112,7 +118,7 @@ export default {
       missingKey: [
         {
           _id: "643c3abae7a634f53fd61c54",
-          file: "5ce0f3a9-ff64-4466-aa7a-6af60fc26cff_QuestPostmanDump_v12.json.enc",
+          file: "fa07da15-43f7-4efa-9550-a0c7e1adcd79_download.jpeg.enc",
           owner: "643c39d4e7a634f53fd61c0e",
         },
         {
