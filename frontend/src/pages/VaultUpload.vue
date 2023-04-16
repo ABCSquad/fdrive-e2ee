@@ -7,6 +7,9 @@
       <Button @click="testDecrypt">Decrypt</Button>
       <Button @click="getAllFiles">Get all files</Button>
       <pre>{{ token }}</pre>
+      <div v-for="(item, index) in files" :key="index">
+        {{ item.name }}
+      </div>
     </div>
   </div>
 </template>
@@ -27,7 +30,12 @@ export default {
   name: "VaultUpload",
   // eslint-disable-next-line vue/no-reserved-component-names
   components: { Button },
-
+  data: () => ({
+    files: [],
+  }),
+  mounted() {
+    this.getAllFiles();
+  },
   methods: {
     convertWordArrayToUint8Array(wordArray) {
       var arrayOfWords = wordArray.hasOwnProperty("words")
@@ -93,6 +101,7 @@ export default {
       uploadBytes(storageRef, encryptedBlob)
         .then((snapshot) => {
           console.log("uploaded", { identifier: snapshot.metadata.name });
+          this.getAllFiles();
         })
         .catch((err) => {
           console.log(err);
@@ -108,7 +117,7 @@ export default {
       const listRef = ref(storage, "vault");
       listAll(listRef)
         .then((res) => {
-          console.log(res);
+          this.files = res.items;
         })
         .catch((error) => {
           console.log(error);
