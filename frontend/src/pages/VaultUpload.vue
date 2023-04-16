@@ -80,6 +80,8 @@ export default {
 
         var a = document.createElement("a");
         var url = window.URL.createObjectURL(fileDec);
+
+        // Remove .enc appended during encryption
         var filename = file.name.substr(0, file.name.length - 4);
         a.href = url;
         a.download = filename;
