@@ -21,9 +21,17 @@
       </div>
 
       <div class="vault-upload">
-        <input ref="fileUpload" type="file" />
-        <Button @click="uploadFile">Encrypt</Button>
-        <Button @click="getKeys">Get Keys</Button>
+        <label>
+          <input
+            id="fileUpload"
+            ref="fileUpload"
+            type="file"
+            hidden
+            @change="uploadFile" />
+          <Button appearance="primary" icon-left="plus" @click="chooseFiles()">
+            Upload a file
+          </Button>
+        </label>
       </div>
     </div>
 
@@ -89,6 +97,10 @@ export default {
   },
 
   methods: {
+    chooseFiles: function () {
+      document.getElementById("fileUpload").click();
+    },
+
     getNameFromIndentifier(filename) {
       const re = /\w{8}-\w{4}-\w{4}-\w{4}-\w{12}/;
       let result = filename.replace(re, "");
@@ -158,25 +170,21 @@ export default {
     },
 
     encrypt(file, key) {
-      return new Promise((resolve, reject) => {
-        var reader = new FileReader();
-        reader.onload = async () => {
-          var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
-          var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
+      let fileId;
+      var reader = new FileReader();
+      reader.onload = () => {
+        var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
+        var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
 
-          var fileEnc = new Blob([encrypted]); // Create blob from string
-          var filename = file.name + ".enc";
+        var fileEnc = new Blob([encrypted]); // Create blob from string
+        var filename = file.name + ".enc";
 
-          try {
-            const fileId = await this.upload(fileEnc, filename);
-            resolve(fileId);
-          } catch (error) {
-            reject(error);
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      });
+        fileId = this.upload(fileEnc, filename);
+      };
+      reader.readAsArrayBuffer(file);
+      return fileId;
     },
+
     decrypt(file) {
       var reader = new FileReader();
       reader.onload = () => {
@@ -200,12 +208,18 @@ export default {
       reader.readAsText(file);
     },
 
-    async upload(encryptedBlob, filename) {
+    upload(encryptedBlob, filename) {
       const storageRef = ref(storage, `vault/${uuid.v4()}_${filename}`);
-      const snapshot = await uploadBytes(storageRef, encryptedBlob);
-      console.log("uploaded", snapshot);
-      this.getAllFiles();
-      return snapshot.metadata.name;
+      uploadBytes(storageRef, encryptedBlob)
+        .then((snapshot) => {
+          console.log("uploaded", snapshot);
+          this.getAllFiles();
+
+          return snapshot.metadata.name;
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     },
 
     testDecrypt() {
@@ -287,7 +301,7 @@ export default {
         const keySize = 256 / 32; // AES-256
         const key = CryptoJS.lib.WordArray.random(keySize).toString();
         // TODO: Encrypt the file using AES and store it in the database
-        const fileId = await this.encrypt(file, key);
+        const fileId = this.encrypt(file, key);
         console.log(fileId);
         // Generate dummy identifier for file
         // const fileId = Math.random().toString(36).substring(7);
