@@ -2,9 +2,10 @@
   <div class="h-full w-full">
     <div class="h-full flex flex-col justify-center items-center">
       <input ref="fileUpload" type="file" />
-      <Button @click="upload">Encrypt</Button>
+      <Button @click="() => encrypt($refs.fileUpload.files[0])">Encrypt</Button>
       <input ref="fileUploadDecrypt" type="file" />
       <Button @click="testDecrypt">Decrypt</Button>
+      <Button @click="getAllFiles">Get all files</Button>
       <pre>{{ token }}</pre>
     </div>
   </div>
@@ -19,7 +20,8 @@ import _ from "lodash";
 let globalStore, sessionCipher;
 
 import { storage } from "../firebase.js";
-import { ref, uploadBytes } from "firebase/storage";
+import { ref, uploadBytes, listAll } from "firebase/storage";
+import { callbackify } from "util";
 
 export default {
   name: "VaultUpload",
@@ -54,16 +56,11 @@ export default {
         var key = "1234567887654321";
         var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
         var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
-        console.log(encrypted);
-        var fileEnc = new Blob([encrypted]); // Create blob from string
 
-        var a = document.createElement("a");
-        var url = window.URL.createObjectURL(fileEnc);
+        var fileEnc = new Blob([encrypted]); // Create blob from string
         var filename = file.name + ".enc";
-        a.href = url;
-        a.download = filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
+
+        this.upload(fileEnc, filename);
       };
       reader.readAsArrayBuffer(file);
     },
@@ -91,41 +88,31 @@ export default {
       reader.readAsText(file);
     },
 
-    upload() {
-      this.encrypt(this.$refs.fileUpload.files[0]);
-
-      const storageRef = ref(
-        storage,
-        `vault/${this.$refs.fileUpload.files[0].name}`
-      );
-      console.log(this.$refs.fileUpload.files[0]);
-      // const storageRef = ref(storage, `vault/`);
-      // uploadBytes(storageRef, this.$refs.fileUpload.files[0])
-      //   .then((snapshot) => {
-      //     console.log("uploaded", { identifier: snapshot.metadata.name });
-      //   })
-      //   .catch((err) => {
-      //     console.log(err);
-      //   });
+    upload(encryptedBlob, filename) {
+      const storageRef = ref(storage, `vault/${filename}`);
+      uploadBytes(storageRef, encryptedBlob)
+        .then((snapshot) => {
+          console.log("uploaded", { identifier: snapshot.metadata.name });
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     },
 
     testDecrypt() {
       console.log(this.$refs.fileUploadDecrypt.files[0]);
       this.decrypt(this.$refs.fileUploadDecrypt.files[0]);
+    },
 
-      // const storageRef = ref(
-      //   storage,
-      //   `vault/${this.$refs.fileUpload.files[0].name}`
-      // );
-      // console.log(this.$refs.fileUpload.files[0]);
-      // const storageRef = ref(storage, `vault/`);
-      // uploadBytes(storageRef, this.$refs.fileUpload.files[0])
-      //   .then((snapshot) => {
-      //     console.log("uploaded", { identifier: snapshot.metadata.name });
-      //   })
-      //   .catch((err) => {
-      //     console.log(err);
-      //   });
+    getAllFiles() {
+      const listRef = ref(storage, "vault");
+      listAll(listRef)
+        .then((res) => {
+          console.log(res);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
     },
 
     async getKeys() {
