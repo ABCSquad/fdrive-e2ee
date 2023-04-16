@@ -2,12 +2,12 @@ import { initializeApp } from "firebase/app";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: process.env.VUE_APP_APIKEY,
-  authDomain: process.env.VUE_APP_AUTHDOMAIN,
-  projectId: process.env.VUE_APP_PROJECTID,
-  storageBucket: process.env.VUE_APP_STORAGE_BUCKET,
-  messagingSenderId: process.env.VUE_APP_MESSAGING_SENDERID,
-  appId: process.env.VUE_APP_APPID,
+  apiKey: "AIzaSyDM4YlX3Unn0wpCyB7LPTS5Jmr3LYpAMlw",
+  authDomain: "fdrive-encrypted-storage.firebaseapp.com",
+  projectId: "fdrive-encrypted-storage",
+  storageBucket: "fdrive-encrypted-storage.appspot.com",
+  messagingSenderId: "245777209820",
+  appId: "1:245777209820:web:21b948585576eb7c941719",
 };
 
 // Initialize Firebase
