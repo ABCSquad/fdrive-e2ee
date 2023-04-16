@@ -58,7 +58,16 @@
               <img
                 :src="getIconUrl(formatMimeType('jpeg'))"
                 class="h-3.5 mr-1.5" />
-              <p>{{ getFileSubtitle(item.name) }}</p>
+              <div class="w-full flex flex-row justify-between items-center">
+                <p>{{ getFileSubtitle(item.name) }}</p>
+                <!-- <p>{{ getIfDecryptable(item.name) }}</p> -->
+                <Tooltip text="Please check your Phone to Decrypt.">
+                  <FeatherIcon
+                    v-if="getIfDecryptable(item.name)"
+                    name="lock"
+                    class="stroke-1.5 w-4 h-4 text-black-700" />
+                </Tooltip>
+              </div>
             </div>
           </div>
         </div>
@@ -68,7 +77,7 @@
 </template>
 
 <script>
-import { Button, FeatherIcon } from "frappe-ui";
+import { Button, FeatherIcon, Tooltip } from "frappe-ui";
 import { Buffer } from "buffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
 import CryptoJS from "crypto-js";
@@ -86,12 +95,33 @@ import { callbackify } from "util";
 export default {
   name: "VaultUpload",
   // eslint-disable-next-line vue/no-reserved-component-names
-  components: { Button, FeatherIcon },
+  components: { Button, FeatherIcon, Tooltip },
   setup() {
     return { getIconUrl, formatMimeType };
   },
   data: () => ({
     files: [],
+    keyData: {
+      key: [
+        {
+          _id: "643c3a1fe7a634f53fd61c2d",
+          file: "c60194ac-2346-4368-9d2d-1945852a3bf5_download.jpeg.enc",
+          owner: "643c39d4e7a634f53fd61c0e",
+        },
+      ],
+      missingKey: [
+        {
+          _id: "643c3abae7a634f53fd61c54",
+          file: "5ce0f3a9-ff64-4466-aa7a-6af60fc26cff_QuestPostmanDump_v12.json.enc",
+          owner: "643c39d4e7a634f53fd61c0e",
+        },
+        {
+          _id: "643c3b30e7a634f53fd61c85",
+          file: "b9cb2839-88f1-4b26-945a-67c44ecffd73_attendance.xlsx.enc",
+          owner: "643c39d4e7a634f53fd61c0e",
+        },
+      ],
+    },
   }),
   mounted() {
     this.getAllFiles();
@@ -101,6 +131,12 @@ export default {
   methods: {
     chooseFiles: function () {
       document.getElementById("fileUpload").click();
+    },
+
+    getIfDecryptable(fileId) {
+      const checkIfExists = (obj) => obj.file === fileId;
+
+      return this.keyData.missingKey.some(checkIfExists);
     },
 
     getNameFromIndentifier(filename) {
@@ -264,6 +300,7 @@ export default {
       );
       const responseData = await response.json();
       console.log(responseData.data);
+      this.keyData = response.data;
       // Update global store
       this.reconstructStore();
       // Create session cipher to decrypt
