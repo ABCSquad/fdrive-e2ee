@@ -13,6 +13,11 @@ const routes = [
     component: () => import("@/pages/Vault.vue"),
   },
   {
+    path: "/vault/upload",
+    name: "VaultUpload",
+    component: () => import("@/pages/VaultUpload.vue"),
+  },
+  {
     path: "/vault/:entityName",
     name: "Vault Folder",
     component: () => import("@/pages/Folder.vue"),
