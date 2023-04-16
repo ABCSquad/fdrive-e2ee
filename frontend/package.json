@@ -16,6 +16,7 @@
     "buffer": "^6.0.3",
     "bytebuffer": "^5.0.1",
     "canvas-datagrid": "^0.4.5",
+    "crypto-js": "^4.1.1",
     "docx-preview": "^0.1.14",
     "dropzone": "^6.0.0-beta.2",
     "feather-icons": "^4.29.0",

@@ -106,6 +106,7 @@
 
 <script>
 import Dropzone from "dropzone";
+import CryptoJS from "crypto-js";
 import ListView from "@/components/ListView.vue";
 import GridView from "@/components/GridView.vue";
 import DriveToolBar from "@/components/DriveToolBar.vue";
@@ -468,6 +469,16 @@ export default {
   },
   methods: {
     initializeDropzone() {
+      function encrypt(chunk) {
+        console.log("chunk array", chunk);
+        var key = CryptoJS.enc.Hex.parse("000102030405060708090a0b0c0d0e0f");
+        var iv = CryptoJS.enc.Hex.parse("101112131415161718191a1b1c1d1e1f");
+
+        var aesEncryptor = CryptoJS.algo.AES.createEncryptor(key, { iv: iv });
+
+        return null;
+      }
+
       let componentContext = this;
       this.dropzone = new Dropzone(this.$el.parentNode, {
         paramName: "file",
@@ -486,6 +497,10 @@ export default {
           Accept: "application/json",
         },
         sending: function (file, xhr, formData, chunk) {
+          console.log("sending", file);
+
+          encrypt(file.upload.chunks);
+
           file.parent ? formData.append("parent", file.parent) : null;
           file.webkitRelativePath
             ? formData.append(
@@ -518,6 +533,17 @@ export default {
         },
       });
       this.dropzone.on("addedfile", function (file) {
+        console.log("onAdded", file);
+
+        // Encrypt Using AES
+        var reader = new FileReader();
+        reader.onload = function (event) {
+          // event.target.result contains base64 encoded image
+          console.log(event.target.result);
+        };
+        reader.readAsDataURL(file);
+        console.log("reader", reader);
+
         file.parent = componentContext.entityName;
         componentContext.$store.commit("pushToUploads", {
           uuid: file.upload.uuid,
@@ -526,6 +552,8 @@ export default {
         });
       });
       this.dropzone.on("uploadprogress", function (file, progress) {
+        console.log("uploadprogress", file);
+
         componentContext.$store.commit("updateUpload", {
           uuid: file.upload.uuid,
           progress: progress,
@@ -545,6 +573,8 @@ export default {
         });
       });
       this.dropzone.on("complete", function (file) {
+        console.log("complete", file);
+
         componentContext.$resources.folderContents.fetch();
         componentContext.$store.commit("updateUpload", {
           uuid: file.upload.uuid,
