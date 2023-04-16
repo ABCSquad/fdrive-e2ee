@@ -86,11 +86,11 @@ import _ from "lodash";
 import getIconUrl from "@/utils/getIconUrl";
 import { formatMimeType } from "@/utils/format";
 
-let globalStore, sessionCipher;
+let globalStore;
+let globalKeyData;
 
 import { storage } from "../firebase.js";
 import { ref, uploadBytes, listAll } from "firebase/storage";
-import { callbackify } from "util";
 
 export default {
   name: "VaultUpload",
@@ -101,27 +101,7 @@ export default {
   },
   data: () => ({
     files: [],
-    keyData: {
-      key: [
-        {
-          _id: "643c3a1fe7a634f53fd61c2d",
-          file: "c60194ac-2346-4368-9d2d-1945852a3bf5_download.jpeg.enc",
-          owner: "643c39d4e7a634f53fd61c0e",
-        },
-      ],
-      missingKey: [
-        {
-          _id: "643c3abae7a634f53fd61c54",
-          file: "5ce0f3a9-ff64-4466-aa7a-6af60fc26cff_QuestPostmanDump_v12.json.enc",
-          owner: "643c39d4e7a634f53fd61c0e",
-        },
-        {
-          _id: "643c3b30e7a634f53fd61c85",
-          file: "b9cb2839-88f1-4b26-945a-67c44ecffd73_attendance.xlsx.enc",
-          owner: "643c39d4e7a634f53fd61c0e",
-        },
-      ],
-    },
+    keyData: { missingKeys: [], keys: [] },
   }),
   mounted() {
     this.getAllFiles();
@@ -135,8 +115,7 @@ export default {
 
     getIfDecryptable(fileId) {
       const checkIfExists = (obj) => obj.file === fileId;
-
-      return this.keyData.missingKey.some(checkIfExists);
+      return globalKeyData.missingKeys.some(checkIfExists);
     },
 
     getNameFromIndentifier(filename) {
@@ -208,21 +187,25 @@ export default {
     },
 
     encrypt(file, key) {
-      let fileId;
-      var reader = new FileReader();
-      reader.onload = () => {
-        var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
-        var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
+      return new Promise((resolve, reject) => {
+        var reader = new FileReader();
+        reader.onload = async () => {
+          var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
+          var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
 
-        var fileEnc = new Blob([encrypted]); // Create blob from string
-        var filename = file.name + ".enc";
+          var fileEnc = new Blob([encrypted]); // Create blob from string
+          var filename = file.name + ".enc";
 
-        fileId = this.upload(fileEnc, filename);
-      };
-      reader.readAsArrayBuffer(file);
-      return fileId;
+          try {
+            const fileId = await this.upload(fileEnc, filename);
+            resolve(fileId);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
     },
-
     decrypt(file) {
       var reader = new FileReader();
       reader.onload = () => {
@@ -246,18 +229,12 @@ export default {
       reader.readAsText(file);
     },
 
-    upload(encryptedBlob, filename) {
+    async upload(encryptedBlob, filename) {
       const storageRef = ref(storage, `vault/${uuid.v4()}_${filename}`);
-      uploadBytes(storageRef, encryptedBlob)
-        .then((snapshot) => {
-          console.log("uploaded", snapshot);
-          this.getAllFiles();
-
-          return snapshot.metadata.name;
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      const snapshot = await uploadBytes(storageRef, encryptedBlob);
+      console.log("uploaded", snapshot);
+      this.getAllFiles();
+      return snapshot.metadata.name;
     },
 
     testDecrypt() {
@@ -300,7 +277,8 @@ export default {
       );
       const responseData = await response.json();
       console.log(responseData.data);
-      this.keyData = response.data;
+      // this.keyData = responseData.data;
+      globalKeyData = _.cloneDeep(responseData.data);
       // Update global store
       this.reconstructStore();
       // Create session cipher to decrypt
@@ -340,7 +318,7 @@ export default {
         const keySize = 256 / 32; // AES-256
         const key = CryptoJS.lib.WordArray.random(keySize).toString();
         // TODO: Encrypt the file using AES and store it in the database
-        const fileId = this.encrypt(file, key);
+        const fileId = await this.encrypt(file, key);
         console.log(fileId);
         // Generate dummy identifier for file
         // const fileId = Math.random().toString(36).substring(7);
