@@ -67,7 +67,7 @@
                   {{ getFileSubtitle(item.name) }}
                 </p>
                 <!-- <p>{{ getIfDecryptable(item.name) }}</p> -->
-                <Tooltip text="Please check your Phone to Decrypt.">
+                <Tooltip text="Waiting for this file. Check your phone.">
                   <FeatherIcon
                     v-if="getIfDecryptable(item.name)"
                     name="lock"
