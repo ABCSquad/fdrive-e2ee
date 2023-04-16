@@ -43,6 +43,7 @@ import { Button, FeatherIcon } from "frappe-ui";
 import { Buffer } from "buffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
 import CryptoJS from "crypto-js";
+import { uuid } from "vue-uuid";
 import _ from "lodash";
 let globalStore, sessionCipher;
 
@@ -61,6 +62,12 @@ export default {
     this.getAllFiles();
   },
   methods: {
+    getIndentifier(filename) {
+      const re = /\w{8}-\w{4}-\w{4}-\w{4}-\w{12}/;
+      const result = filename.match(re);
+      console.log(result[0]);
+    },
+
     convertWordArrayToUint8Array(wordArray) {
       var arrayOfWords = wordArray.hasOwnProperty("words")
         ? wordArray.words
@@ -122,12 +129,13 @@ export default {
     },
 
     upload(encryptedBlob, filename) {
-      const storageRef = ref(storage, `vault/${filename}`);
+      const storageRef = ref(storage, `vault/${uuid.v4()}_${filename}`);
       uploadBytes(storageRef, encryptedBlob)
         .then((snapshot) => {
-          console.log("uploaded", { identifier: snapshot.metadata.name });
+          console.log("uploaded", snapshot);
           this.getAllFiles();
-          return snapshot.metadata.name;
+
+          return this.getIndentifier(snapshot.metadata.name);
         })
         .catch((err) => {
           console.log(err);
@@ -143,6 +151,7 @@ export default {
       const listRef = ref(storage, "vault");
       listAll(listRef)
         .then((res) => {
+          console.log(res);
           this.files = res.items;
         })
         .catch((error) => {
