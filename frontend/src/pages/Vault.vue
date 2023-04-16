@@ -100,6 +100,7 @@ export default {
           const message = JSON.parse(event.data);
           // If success message
           if (message.type === "success") {
+            this.isGenerated = true;
             this.token = message.token;
           }
           if (message.type === "primaryInformation") {
