@@ -31,6 +31,9 @@
           <Button appearance="primary" icon-left="plus" @click="chooseFiles()">
             Upload a file
           </Button>
+          <Button v-if="selectedEntity" @click="download">
+            Download {{ getNameFromIndentifier(selectedEntity) }}
+          </Button>
         </label>
       </div>
     </div>
@@ -40,7 +43,14 @@
     <div
       class="w-full flex flex-row flex-wrap jusitfy-evenly items-start gap-5 mt-5">
       <div v-for="(item, index) in files" :key="index" class="flex flex-col">
-        <div class="md:w-[212px] rounded-lg border group select-none entity">
+        <div
+          :id="item.name"
+          :key="item.name"
+          class="md:w-[212px] rounded-lg border group select-none entity"
+          :class="
+            selectedEntity === item.name ? 'bg-blue-100' : 'hover:bg-blue-50'
+          "
+          @click="(event) => handleSelect(item.name, event)">
           <div class="h-28 md:h-32 place-items-center grid">
             <img
               :src="
@@ -79,11 +89,20 @@
         </div>
       </div>
     </div>
+
+    <EntityContextMenu
+      v-if="showEntityContext"
+      :entityName="selectedEntity"
+      :actionItems="actionItems"
+      :entityContext="entityContext"
+      :close="closeContextMenu"
+      v-on-outside-click="closeContextMenu" />
   </div>
 </template>
 
 <script>
 import { Button, FeatherIcon, Tooltip } from "frappe-ui";
+import EntityContextMenu from "@/components/EntityContextMenu.vue";
 import { Buffer } from "buffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
 import CryptoJS from "crypto-js";
@@ -92,20 +111,24 @@ import _ from "lodash";
 import getIconUrl from "@/utils/getIconUrl";
 import { formatMimeType } from "@/utils/format";
 
-let globalStore, sessionCipher;
+let globalStore,
+  decryptedKeys = {},
+  sessionCipher;
 
 import { storage } from "../firebase.js";
-import { ref, uploadBytes, listAll } from "firebase/storage";
-import { callbackify } from "util";
+import { ref, uploadBytes, listAll, getBlob } from "firebase/storage";
 
 export default {
   name: "VaultUpload",
   // eslint-disable-next-line vue/no-reserved-component-names
-  components: { Button, FeatherIcon, Tooltip },
+  components: { Button, FeatherIcon, Tooltip, EntityContextMenu },
   setup() {
     return { getIconUrl, formatMimeType };
   },
   data: () => ({
+    showEntityContext: false,
+    selectedEntity: "",
+    entityContext: {},
     files: [],
     keyData: {
       key: [
@@ -139,6 +162,167 @@ export default {
       document.getElementById("fileUpload").click();
     },
 
+    handleSelect(file, event) {
+      console.log(event);
+      this.selectedEntity = file;
+      this.toggleEntityContext({ x: event.clientX, y: event.clientY });
+      console.log(this.selectedEntity);
+    },
+    actionItems() {
+      return [
+        {
+          label: "Download",
+          icon: "download",
+          handler: () => {
+            window.location.href = `/api/method/drive.api.files.get_file_content?entity_name=${this.selectedEntities[0].name}&trigger_download=1`;
+          },
+          isEnabled: () => {
+            return (
+              this.selectedEntities.length === 1 &&
+              !this.selectedEntities[0].is_group
+            );
+          },
+        },
+        {
+          label: "Share",
+          icon: "share-2",
+          handler: () => {
+            this.showShareDialog = true;
+          },
+          isEnabled: () => {
+            return this.selectedEntities.length === 1;
+          },
+        },
+        {
+          label: "View details",
+          icon: "eye",
+          handler: () => {
+            this.$store.commit("setShowInfo", true);
+          },
+          isEnabled: () => {
+            return (
+              !this.$store.state.showInfo && this.selectedEntities.length === 1
+            );
+          },
+        },
+        {
+          label: "Hide details",
+          icon: "eye-off",
+          handler: () => {
+            this.$store.commit("setShowInfo", false);
+          },
+          isEnabled: () => {
+            return this.$store.state.showInfo;
+          },
+        },
+        {
+          label: "Rename",
+          icon: "edit",
+          handler: () => {
+            this.showRenameDialog = true;
+          },
+          isEnabled: () => {
+            return this.selectedEntities.length === 1;
+          },
+        },
+        {
+          label: "Cut",
+          icon: "scissors",
+          handler: () => {
+            this.$store.commit(
+              "setCutEntities",
+              this.selectedEntities.map((x) => x.name)
+            );
+          },
+          isEnabled: () => {
+            return this.selectedEntities.length > 0;
+          },
+        },
+        {
+          label: "Paste into Folder",
+          icon: "clipboard",
+          handler: async () => {
+            for (let i = 0; i < this.$store.state.cutEntities.length; i++) {
+              await this.$resources.moveEntity.submit({
+                method: "move",
+                entity_name: this.$store.state.cutEntities[i],
+                new_parent: this.selectedEntities[0].name,
+              });
+            }
+            this.selectedEntities = [];
+            this.$store.commit("setCutEntities", []);
+            this.$resources.folderContents.fetch();
+          },
+          isEnabled: () => {
+            return (
+              this.$store.state.cutEntities.length > 0 &&
+              this.selectedEntities.length === 1
+            );
+          },
+        },
+        {
+          label: "Add to Favourites",
+          icon: "star",
+          handler: () => {
+            this.$resources.toggleFavourite.submit();
+          },
+          isEnabled: () => {
+            return (
+              this.selectedEntities.length > 0 &&
+              this.selectedEntities.every((x) => !x.is_favourite)
+            );
+          },
+        },
+        {
+          label: "Remove from Favourites",
+          icon: "x-circle",
+          handler: () => {
+            this.$resources.toggleFavourite.submit();
+          },
+          isEnabled: () => {
+            return (
+              this.selectedEntities.length > 0 &&
+              this.selectedEntities.every((x) => x.is_favourite)
+            );
+          },
+        },
+        {
+          label: "Change Color",
+          icon: "droplet",
+          isEnabled: () => {
+            return (
+              this.selectedEntities.length === 1 &&
+              this.selectedEntities[0].is_group
+            );
+          },
+        },
+        {
+          label: "Move to Trash",
+          icon: "trash-2",
+          handler: () => {
+            this.showRemoveDialog = true;
+          },
+          isEnabled: () => {
+            return this.selectedEntities.length > 0;
+          },
+        },
+      ].filter((item) => item.isEnabled());
+    },
+
+    toggleEntityContext(event) {
+      if (!event) this.showEntityContext = false;
+      else {
+        // this.hidePreview();
+        this.showEntityContext = true;
+        // this.showEmptyEntityContextMenu = false;
+        this.entityContext = event;
+      }
+    },
+    closeContextMenu() {
+      this.showEntityContext = false;
+      // this.showEmptyEntityContextMenu = false;
+      this.entityContext = undefined;
+    },
     getIfDecryptable(fileId) {
       const checkIfExists = (obj) => obj.file === fileId;
 
@@ -215,8 +399,10 @@ export default {
 
     encrypt(file, key) {
       let fileId;
+
       var reader = new FileReader();
       reader.onload = () => {
+        var key = "1234567887654321";
         var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
         var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
 
@@ -229,7 +415,7 @@ export default {
       return fileId;
     },
 
-    decrypt(file) {
+    decrypt(file, fileName, key) {
       var reader = new FileReader();
       reader.onload = () => {
         var key = "1234567887654321";
@@ -243,7 +429,7 @@ export default {
         var url = window.URL.createObjectURL(fileDec);
 
         // Remove .enc appended during encryption
-        var filename = file.name.substr(0, file.name.length - 4);
+        var filename = fileName.substr(0, fileName.length - 4);
         a.href = url;
         a.download = filename;
         a.click();
@@ -266,6 +452,19 @@ export default {
         });
     },
 
+    download() {
+      const downloadRef = ref(storage, `vault/${this.selectedEntity}`);
+      getBlob(downloadRef)
+        .then((resBlob) => {
+          this.decrypt(
+            resBlob,
+            this.selectedEntity,
+            decryptedKeys[this.selectedEntity]
+          );
+        })
+        .catch((err) => console.log(err));
+    },
+
     testDecrypt() {
       console.log(this.$refs.fileUploadDecrypt.files[0]);
       this.decrypt(this.$refs.fileUploadDecrypt.files[0]);
@@ -285,7 +484,7 @@ export default {
 
     async getKeys() {
       // Global variable
-      let decryptedKeys = {};
+
       // Retrieve companionAddress
       const companionAddressString = localStorage.getItem("companionAddress");
       // Create signal protocol address
