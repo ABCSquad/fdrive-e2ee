@@ -210,7 +210,7 @@ export default {
         socket.onclose = (event) => {
           if (event.wasClean) {
             console.log("Connection closed cleanly");
-            this.$router.push("/upload");
+            this.$router.push("/vault/upload");
           } else {
             console.log("Connection died");
           }
