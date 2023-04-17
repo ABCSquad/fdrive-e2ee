@@ -70,17 +70,18 @@
               class="truncate text-sm text-gray-600 flex mt-1 place-items-center">
               <img
                 :src="getIconUrl(formatMimeType('jpeg'))"
-                class="h-3.5 mr-1.5 p-1 blur"
-                :class="getIfDecryptable(item.name) && ' blur-none'" />
-              <div
-                class="w-full flex flex-row justify-between items-center blur-sm">
-                <p :class="getIfDecryptable(item.name) && 'blur-none'">
+                class="h-3.5 mr-1.5 blur-sm"
+                :class="getIfDecryptable(item.name) && 'blur-none'" />
+              <div class="w-full flex flex-row justify-between items-center">
+                <p
+                  class="blur-sm"
+                  :class="getIfDecryptable(item.name) && 'blur-none'">
                   {{ getFileSubtitle(item.name) }}
                 </p>
                 <!-- <p>{{ getIfDecryptable(item.name) }}</p> -->
                 <Tooltip text="Waiting for this file. Check your phone.">
                   <FeatherIcon
-                    v-if="getIfDecryptable(item.name)"
+                    v-if="!getIfDecryptable(item.name)"
                     name="lock"
                     class="stroke-1.5 w-4 h-4 text-black-700" />
                 </Tooltip>
