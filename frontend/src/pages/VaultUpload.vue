@@ -38,7 +38,7 @@
       </div>
     </div>
 
-    <div class="text-gray-600 font-medium mt-8">Files</div>
+    <div class="text-gray-600 font-medium mt-8">Files {{ userId }}</div>
 
     <div
       class="w-full flex flex-row flex-wrap jusitfy-evenly items-start gap-5 mt-5">
@@ -122,16 +122,69 @@ export default {
   name: "VaultUpload",
   // eslint-disable-next-line vue/no-reserved-component-names
   components: { Button, FeatherIcon, Tooltip, EntityContextMenu },
+
   setup() {
     return { getIconUrl, formatMimeType };
   },
+
   data: () => ({
     showEntityContext: false,
     selectedEntity: "",
     entityContext: {},
     files: [],
-    keyData: { missingKeys: [], keys: [] },
+    keyData: {
+      missingKeys: [
+        {
+          _id: "643d96e77845eda66887d1d3",
+          file: "85c2e9ed-e1ab-4065-8e93-4353b479158b_download.jpeg.enc",
+          owner: "643d949a7845eda66887d198",
+          keys: [
+            {
+              companionAddress: "test.4379",
+              key: {
+                type: 1,
+                body: `test`,
+                registrationId: 9882,
+              },
+              uploader: true,
+              sameChainEncrypted: true,
+              _id: "643d96e77845eda66887d1d4",
+            },
+          ],
+          __v: 0,
+        },
+      ],
+      keys: [
+        {
+          _id: "643d95227845eda66887d1ac",
+          file: "df8c9838-3dbd-446d-a36e-d0c2ffea2a51_QuestPostmanDump_v12.json.enc",
+          owner: "643d949a7845eda66887d198",
+          keys: [
+            {
+              companionAddress: "test.4379",
+              key: {
+                type: 1,
+                body: '3\n!\u0005£I³Yï°ÑO@E\u0015ºÙqÝ£©BÜ§îZCR~SuR\r\u0010\u0001\u0018\u0000" \u0017öÛ\u0003?Õ%i\u0006ØoÞØ\u001fN³ÑYko,/"h/§cI*nYyè¤',
+                registrationId: 4379,
+              },
+              uploader: true,
+              sameChainEncrypted: false,
+              _id: "643d95227845eda66887d1ad",
+            },
+          ],
+          __v: 0,
+        },
+      ],
+    },
   }),
+
+  computed: {
+    userId() {
+      console.log(this.$store.state.auth.user_id);
+
+      return null;
+    },
+  },
   mounted() {
     this.getAllFiles();
     this.getKeys();
@@ -305,7 +358,8 @@ export default {
     },
     getIfDecryptable(fileId) {
       const checkIfExists = (obj) => obj.file === fileId;
-      return globalKeyData.missingKeys.some(checkIfExists);
+      // return globalKeyData.missingKeys.some(checkIfExists);
+      return false;
     },
 
     getNameFromIndentifier(filename) {
@@ -418,7 +472,10 @@ export default {
     },
 
     async upload(encryptedBlob, filename) {
-      const storageRef = ref(storage, `vault/${uuid.v4()}_${filename}`);
+      const storageRef = ref(
+        storage,
+        `vault/${this.$store.state.auth.user_id}/${uuid.v4()}_${filename}`
+      );
       const snapshot = await uploadBytes(storageRef, encryptedBlob);
       console.log("uploaded", snapshot);
       this.getAllFiles();
@@ -426,7 +483,10 @@ export default {
     },
 
     download() {
-      const downloadRef = ref(storage, `vault/${this.selectedEntity}`);
+      const downloadRef = ref(
+        storage,
+        `vault/${this.$store.state.auth.user_id}/${this.selectedEntity}`
+      );
       getBlob(downloadRef)
         .then((resBlob) => {
           this.decrypt(
@@ -444,7 +504,7 @@ export default {
     },
 
     getAllFiles() {
-      const listRef = ref(storage, "vault");
+      const listRef = ref(storage, `vault/${this.$store.state.auth.user_id}/`);
       listAll(listRef)
         .then((res) => {
           console.log(res);
