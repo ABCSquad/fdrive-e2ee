@@ -56,24 +56,25 @@
               :src="
                 getIconUrl(formatMimeType(getIconFromIdentifier(item.name)))
               "
-              class="h-14"
-              :class="getIfDecryptable(item.name) && 'blur-sm'"
+              class="h-14 blur-sm"
+              :class="getIfDecryptable(item.name) && 'blur-none'"
               :draggable="false" />
           </div>
           <div class="px-3.5 md:h-16 content-center grid">
             <h3
-              class="truncate text-[14px] font-medium"
-              :class="getIfDecryptable(item.name) && 'blur-sm'">
+              class="truncate text-[14px] font-medium blur-sm"
+              :class="getIfDecryptable(item.name) && 'blur-none'">
               {{ getNameFromIndentifier(item.name) }}
             </h3>
             <div
               class="truncate text-sm text-gray-600 flex mt-1 place-items-center">
               <img
                 :src="getIconUrl(formatMimeType('jpeg'))"
-                class="h-3.5 mr-1.5"
-                :class="getIfDecryptable(item.name) && 'p-1 blur-sm'" />
-              <div class="w-full flex flex-row justify-between items-center">
-                <p :class="getIfDecryptable(item.name) && 'blur-sm'">
+                class="h-3.5 mr-1.5 p-1 blur"
+                :class="getIfDecryptable(item.name) && ' blur-none'" />
+              <div
+                class="w-full flex flex-row justify-between items-center blur-sm">
+                <p :class="getIfDecryptable(item.name) && 'blur-none'">
                   {{ getFileSubtitle(item.name) }}
                 </p>
                 <!-- <p>{{ getIfDecryptable(item.name) }}</p> -->
@@ -358,8 +359,8 @@ export default {
     },
     getIfDecryptable(fileId) {
       const checkIfExists = (obj) => obj.file === fileId;
-      // return globalKeyData.missingKeys.some(checkIfExists);
-      return false;
+      return globalKeyData.keys.some(checkIfExists);
+      // return false;
     },
 
     getNameFromIndentifier(filename) {
