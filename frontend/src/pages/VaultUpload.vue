@@ -94,11 +94,11 @@
 
     <EntityContextMenu
       v-if="showEntityContext"
-      :entityName="selectedEntity"
-      :actionItems="actionItems"
-      :entityContext="entityContext"
-      :close="closeContextMenu"
-      v-on-outside-click="closeContextMenu" />
+      v-on-outside-click="closeContextMenu"
+      :entity-name="selectedEntity"
+      :action-items="actionItems"
+      :entity-context="entityContext"
+      :close="closeContextMenu" />
   </div>
 </template>
 
@@ -186,6 +186,52 @@ export default {
 
       return null;
     },
+
+    actionItems() {
+      return [
+        {
+          label: "Download",
+          icon: "download",
+          handler: () => {
+            return null;
+          },
+          isEnabled: () => {
+            return true;
+          },
+        },
+        {
+          label: "Share",
+          icon: "share-2",
+          handler: () => {
+            return null;
+          },
+          isEnabled: () => {
+            return true;
+          },
+        },
+        {
+          label: "View details",
+          icon: "eye",
+          handler: () => {
+            this.$store.commit("setShowInfo", true);
+          },
+          isEnabled: () => {
+            return !this.$store.state.showInfo && true;
+          },
+        },
+
+        {
+          label: "Rename",
+          icon: "edit",
+          handler: () => {
+            this.showRenameDialog = true;
+          },
+          isEnabled: () => {
+            return true;
+          },
+        },
+      ].filter((item) => item.isEnabled());
+    },
   },
   mounted() {
     this.getAllFiles();
@@ -198,155 +244,18 @@ export default {
     },
 
     handleSelect(file, event) {
-      console.log(event);
+      console.log("selected file event", event.clientX, event.clientY);
       this.selectedEntity = file;
       this.toggleEntityContext({ x: event.clientX, y: event.clientY });
       console.log(this.selectedEntity);
     },
-    actionItems() {
-      return [
-        {
-          label: "Download",
-          icon: "download",
-          handler: () => {
-            window.location.href = `/api/method/drive.api.files.get_file_content?entity_name=${this.selectedEntities[0].name}&trigger_download=1`;
-          },
-          isEnabled: () => {
-            return (
-              this.selectedEntities.length === 1 &&
-              !this.selectedEntities[0].is_group
-            );
-          },
-        },
-        {
-          label: "Share",
-          icon: "share-2",
-          handler: () => {
-            this.showShareDialog = true;
-          },
-          isEnabled: () => {
-            return this.selectedEntities.length === 1;
-          },
-        },
-        {
-          label: "View details",
-          icon: "eye",
-          handler: () => {
-            this.$store.commit("setShowInfo", true);
-          },
-          isEnabled: () => {
-            return (
-              !this.$store.state.showInfo && this.selectedEntities.length === 1
-            );
-          },
-        },
-        {
-          label: "Hide details",
-          icon: "eye-off",
-          handler: () => {
-            this.$store.commit("setShowInfo", false);
-          },
-          isEnabled: () => {
-            return this.$store.state.showInfo;
-          },
-        },
-        {
-          label: "Rename",
-          icon: "edit",
-          handler: () => {
-            this.showRenameDialog = true;
-          },
-          isEnabled: () => {
-            return this.selectedEntities.length === 1;
-          },
-        },
-        {
-          label: "Cut",
-          icon: "scissors",
-          handler: () => {
-            this.$store.commit(
-              "setCutEntities",
-              this.selectedEntities.map((x) => x.name)
-            );
-          },
-          isEnabled: () => {
-            return this.selectedEntities.length > 0;
-          },
-        },
-        {
-          label: "Paste into Folder",
-          icon: "clipboard",
-          handler: async () => {
-            for (let i = 0; i < this.$store.state.cutEntities.length; i++) {
-              await this.$resources.moveEntity.submit({
-                method: "move",
-                entity_name: this.$store.state.cutEntities[i],
-                new_parent: this.selectedEntities[0].name,
-              });
-            }
-            this.selectedEntities = [];
-            this.$store.commit("setCutEntities", []);
-            this.$resources.folderContents.fetch();
-          },
-          isEnabled: () => {
-            return (
-              this.$store.state.cutEntities.length > 0 &&
-              this.selectedEntities.length === 1
-            );
-          },
-        },
-        {
-          label: "Add to Favourites",
-          icon: "star",
-          handler: () => {
-            this.$resources.toggleFavourite.submit();
-          },
-          isEnabled: () => {
-            return (
-              this.selectedEntities.length > 0 &&
-              this.selectedEntities.every((x) => !x.is_favourite)
-            );
-          },
-        },
-        {
-          label: "Remove from Favourites",
-          icon: "x-circle",
-          handler: () => {
-            this.$resources.toggleFavourite.submit();
-          },
-          isEnabled: () => {
-            return (
-              this.selectedEntities.length > 0 &&
-              this.selectedEntities.every((x) => x.is_favourite)
-            );
-          },
-        },
-        {
-          label: "Change Color",
-          icon: "droplet",
-          isEnabled: () => {
-            return (
-              this.selectedEntities.length === 1 &&
-              this.selectedEntities[0].is_group
-            );
-          },
-        },
-        {
-          label: "Move to Trash",
-          icon: "trash-2",
-          handler: () => {
-            this.showRemoveDialog = true;
-          },
-          isEnabled: () => {
-            return this.selectedEntities.length > 0;
-          },
-        },
-      ].filter((item) => item.isEnabled());
-    },
 
     toggleEntityContext(event) {
+      console.log("toggeled");
       if (!event) this.showEntityContext = false;
       else {
+        console.log("toggeled else");
+
         // this.hidePreview();
         this.showEntityContext = true;
         // this.showEmptyEntityContextMenu = false;
@@ -360,8 +269,8 @@ export default {
     },
     getIfDecryptable(fileId) {
       const checkIfExists = (obj) => obj.file === fileId;
-      return globalKeyData.keys.some(checkIfExists);
-      // return false;
+      // return globalKeyData.keys.some(checkIfExists);
+      return true;
     },
 
     getNameFromIndentifier(filename) {
