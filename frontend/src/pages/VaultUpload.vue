@@ -52,6 +52,10 @@
           :class="
             selectedEntity === item.name ? 'bg-blue-100' : 'hover:bg-blue-50'
           "
+          @contextmenu="
+            (event) =>
+              toggleEntityContext({ x: event.clientX, y: event.clientY })
+          "
           @click="(event) => handleSelect(item.name, event)">
           <div class="h-28 md:h-32 place-items-center grid">
             <img
@@ -234,7 +238,6 @@ export default {
 
     handleSelect(file, event) {
       this.selectedEntity = file;
-      this.toggleEntityContext({ x: event.clientX, y: event.clientY });
     },
     toggleEntityContext(event) {
       if (!event) this.showEntityContext = false;
