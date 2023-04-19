@@ -34,6 +34,8 @@
           <Button v-if="selectedEntity" @click="download">
             Download {{ getNameFromIndentifier(selectedEntity) }}
           </Button>
+
+          <Button v-if="selectedEntity" @click="preview">Preview</Button>
         </label>
       </div>
     </div>
@@ -133,6 +135,7 @@ export default {
     showEntityContext: false,
     selectedEntity: "",
     entityContext: {},
+    previewEntity: null,
     files: [],
     keyData: {
       missingKeys: [
@@ -361,7 +364,7 @@ export default {
         reader.readAsArrayBuffer(file);
       });
     },
-    decrypt(file, fileName, key) {
+    decrypt(file, fileName, key, type) {
       var reader = new FileReader();
       reader.onload = () => {
         var decrypted = CryptoJS.AES.decrypt(reader.result, key); // Decryption: I: Base64 encoded string (OpenSSL-format) -> O: WordArray
@@ -403,7 +406,25 @@ export default {
           this.decrypt(
             resBlob,
             this.selectedEntity,
-            decryptedKeys[this.selectedEntity]
+            decryptedKeys[this.selectedEntity],
+            "DOWNLOAD"
+          );
+        })
+        .catch((err) => console.log(err));
+    },
+
+    preview() {
+      const previewRef = ref(
+        storage,
+        `vault/${this.$store.state.auth.user_id}/${this.selectedEntity}`
+      );
+      getBlob(previewRef)
+        .then((resBlob) => {
+          this.decrypt(
+            resBlob,
+            this.selectedEntity,
+            decryptedKeys[this.selectedEntity],
+            "PREVIEW"
           );
         })
         .catch((err) => console.log(err));
