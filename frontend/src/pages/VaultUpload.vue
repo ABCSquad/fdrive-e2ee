@@ -258,8 +258,7 @@ export default {
     },
     getIfDecryptable(fileId) {
       const checkIfExists = (obj) => obj.file === fileId;
-      // return globalKeyData.keys.some(checkIfExists);
-      return true;
+      return globalKeyData && globalKeyData.keys.some(checkIfExists);
     },
 
     getNameFromIndentifier(filename) {
@@ -350,7 +349,6 @@ export default {
       return new Promise((resolve, reject) => {
         var reader = new FileReader();
         reader.onload = async () => {
-          var key = "1234567887654321";
           var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
           var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
 
@@ -367,11 +365,9 @@ export default {
         reader.readAsArrayBuffer(file);
       });
     },
-    decrypt(file, fileName, key, type) {
+    decrypt(file, fileName, key) {
       var reader = new FileReader();
       reader.onload = () => {
-        var key = "1234567887654321";
-
         var decrypted = CryptoJS.AES.decrypt(reader.result, key); // Decryption: I: Base64 encoded string (OpenSSL-format) -> O: WordArray
         var typedArray = this.convertWordArrayToUint8Array(decrypted); // Convert: WordArray -> typed array
 
@@ -411,8 +407,7 @@ export default {
           this.decrypt(
             resBlob,
             this.selectedEntity,
-            decryptedKeys[this.selectedEntity],
-            "DOWNLOAD"
+            decryptedKeys[this.selectedEntity]
           );
         })
         .catch((err) => console.log(err));

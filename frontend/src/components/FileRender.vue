@@ -167,7 +167,7 @@ export default {
     decrypt(file, fileName) {
       var reader = new FileReader();
       reader.onload = async () => {
-        var key = "1234567887654321";
+        var key = this.decryptKey;
         console.log(this.decryptKey);
         var decrypted = CryptoJS.AES.decrypt(reader.result, key); // Decryption: I: Base64 encoded string (OpenSSL-format) -> O: WordArray
         var typedArray = this.convertWordArrayToUint8Array(decrypted); // Convert: WordArray -> typed array
