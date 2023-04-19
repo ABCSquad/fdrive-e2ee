@@ -52,6 +52,7 @@
           :class="
             selectedEntity === item.name ? 'bg-blue-100' : 'hover:bg-blue-50'
           "
+          @dblclick="preview"
           @contextmenu="
             (event) =>
               toggleEntityContext({ x: event.clientX, y: event.clientY })
