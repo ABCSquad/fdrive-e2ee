@@ -292,14 +292,18 @@ export default {
           return "application/pdf";
 
         case "xlsx":
+        case "xls":
         case "csv":
-          return "vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+          return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
         case "ppt":
-          return "vnd.openxmlformats-officedocument.presentationml.presentation";
+          return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+        case "doc":
+          return "application/msword";
 
         case "docx":
-          return "vnd.openxmlformats-officedocument.wordprocessingml.document";
+          return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         default:
           return "unknown";
       }
