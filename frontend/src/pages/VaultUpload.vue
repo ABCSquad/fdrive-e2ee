@@ -54,10 +54,12 @@
           "
           @dblclick="preview"
           @contextmenu="
-            (event) =>
-              toggleEntityContext({ x: event.clientX, y: event.clientY })
+            (event) => {
+              handleSelect(item.name);
+              toggleEntityContext({ x: event.clientX, y: event.clientY });
+            }
           "
-          @click="(event) => handleSelect(item.name, event)">
+          @click="(event) => handleSelect(item.name)">
           <div class="h-28 md:h-32 place-items-center grid">
             <img
               :src="
@@ -237,7 +239,7 @@ export default {
       document.getElementById("fileUpload").click();
     },
 
-    handleSelect(file, event) {
+    handleSelect(file) {
       this.selectedEntity = file;
     },
     toggleEntityContext(event) {
@@ -381,7 +383,7 @@ export default {
         // Remove .enc appended during encryption
         var filename = fileName.substr(0, fileName.length - 4);
         a.href = url;
-        a.download = filename;
+        a.download = this.getNameFromIndentifier(filename);
         a.click();
         window.URL.revokeObjectURL(url);
       };
