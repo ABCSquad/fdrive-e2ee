@@ -97,8 +97,7 @@
       :entityName="selectedEntity"
       :actionItems="actionItems"
       :entityContext="entityContext"
-      :close="closeContextMenu"
-      v-on-outside-click="closeContextMenu" />
+      :close="closeContextMenu" />
   </div>
 </template>
 
@@ -183,26 +182,9 @@ export default {
   computed: {
     userId() {
       console.log(this.$store.state.auth.user_id);
-
       return null;
     },
-  },
-  mounted() {
-    this.getAllFiles();
-    this.getKeys();
-  },
 
-  methods: {
-    chooseFiles: function () {
-      document.getElementById("fileUpload").click();
-    },
-
-    handleSelect(file, event) {
-      console.log(event);
-      this.selectedEntity = file;
-      this.toggleEntityContext({ x: event.clientX, y: event.clientY });
-      console.log(this.selectedEntity);
-    },
     actionItems() {
       return [
         {
@@ -216,16 +198,6 @@ export default {
               this.selectedEntities.length === 1 &&
               !this.selectedEntities[0].is_group
             );
-          },
-        },
-        {
-          label: "Share",
-          icon: "share-2",
-          handler: () => {
-            this.showShareDialog = true;
-          },
-          isEnabled: () => {
-            return this.selectedEntities.length === 1;
           },
         },
         {
@@ -260,97 +232,31 @@ export default {
             return this.selectedEntities.length === 1;
           },
         },
-        {
-          label: "Cut",
-          icon: "scissors",
-          handler: () => {
-            this.$store.commit(
-              "setCutEntities",
-              this.selectedEntities.map((x) => x.name)
-            );
-          },
-          isEnabled: () => {
-            return this.selectedEntities.length > 0;
-          },
-        },
-        {
-          label: "Paste into Folder",
-          icon: "clipboard",
-          handler: async () => {
-            for (let i = 0; i < this.$store.state.cutEntities.length; i++) {
-              await this.$resources.moveEntity.submit({
-                method: "move",
-                entity_name: this.$store.state.cutEntities[i],
-                new_parent: this.selectedEntities[0].name,
-              });
-            }
-            this.selectedEntities = [];
-            this.$store.commit("setCutEntities", []);
-            this.$resources.folderContents.fetch();
-          },
-          isEnabled: () => {
-            return (
-              this.$store.state.cutEntities.length > 0 &&
-              this.selectedEntities.length === 1
-            );
-          },
-        },
-        {
-          label: "Add to Favourites",
-          icon: "star",
-          handler: () => {
-            this.$resources.toggleFavourite.submit();
-          },
-          isEnabled: () => {
-            return (
-              this.selectedEntities.length > 0 &&
-              this.selectedEntities.every((x) => !x.is_favourite)
-            );
-          },
-        },
-        {
-          label: "Remove from Favourites",
-          icon: "x-circle",
-          handler: () => {
-            this.$resources.toggleFavourite.submit();
-          },
-          isEnabled: () => {
-            return (
-              this.selectedEntities.length > 0 &&
-              this.selectedEntities.every((x) => x.is_favourite)
-            );
-          },
-        },
-        {
-          label: "Change Color",
-          icon: "droplet",
-          isEnabled: () => {
-            return (
-              this.selectedEntities.length === 1 &&
-              this.selectedEntities[0].is_group
-            );
-          },
-        },
-        {
-          label: "Move to Trash",
-          icon: "trash-2",
-          handler: () => {
-            this.showRemoveDialog = true;
-          },
-          isEnabled: () => {
-            return this.selectedEntities.length > 0;
-          },
-        },
-      ].filter((item) => item.isEnabled());
+      ];
+    },
+  },
+  mounted() {
+    this.getAllFiles();
+    this.getKeys();
+  },
+
+  methods: {
+    chooseFiles: function () {
+      document.getElementById("fileUpload").click();
     },
 
+    handleSelect(file, event) {
+      this.selectedEntity = file;
+      this.toggleEntityContext({ x: event.clientX, y: event.clientY });
+      console.log(this.selectedEntity);
+    },
     toggleEntityContext(event) {
       if (!event) this.showEntityContext = false;
       else {
         // this.hidePreview();
-        this.showEntityContext = true;
         // this.showEmptyEntityContextMenu = false;
         this.entityContext = event;
+        this.showEntityContext = true;
       }
     },
     closeContextMenu() {
@@ -360,8 +266,8 @@ export default {
     },
     getIfDecryptable(fileId) {
       const checkIfExists = (obj) => obj.file === fileId;
-      return globalKeyData.keys.some(checkIfExists);
-      // return false;
+      // return globalKeyData.keys.some(checkIfExists);
+      return true;
     },
 
     getNameFromIndentifier(filename) {
