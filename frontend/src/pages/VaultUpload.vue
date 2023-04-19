@@ -276,6 +276,7 @@ export default {
       const extension = encRemoved.split(".").pop();
       switch (extension) {
         case "jpeg":
+        case "jpg":
         case "png":
           return `image/${extension}`;
 
