@@ -213,7 +213,7 @@ export default {
         },
         {
           label: "View details",
-          icon: "eye",
+          icon: "info",
           handler: () => {
             this.$store.commit("setShowInfo", true);
           },
