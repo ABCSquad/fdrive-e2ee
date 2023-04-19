@@ -4,7 +4,7 @@
       <div
         class="fixed inset-0 transition-opacity bg-gray-900 opacity-75"
         @click="this.$emit('hide')"></div>
-      <FileRender :previewEntity="previewEntity" />
+      <FileRender :isVault="isVault" :previewEntity="previewEntity" />
     </div>
   </Teleport>
 </template>
@@ -22,6 +22,10 @@ export default {
     previewEntity: {
       type: Object,
       required: true,
+    },
+    isVault: {
+      type: Boolean,
+      required: false,
     },
   },
   emits: ["hide"],

@@ -41,7 +41,13 @@ import { LoadingIndicator } from "frappe-ui";
 import * as docx from "docx-preview";
 import { read, utils } from "xlsx";
 import canvasDatagrid from "canvas-datagrid";
+import CryptoJS from "crypto-js";
+
 import { set } from "idb-keyval";
+
+import { storage } from "../firebase.js";
+
+import { ref, getBlob } from "firebase/storage";
 
 export default {
   name: "FileRender",
@@ -52,6 +58,10 @@ export default {
     previewEntity: {
       type: Object,
       required: true,
+    },
+    isVault: {
+      type: Boolean,
+      required: false,
     },
   },
   data() {
@@ -77,16 +87,17 @@ export default {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     };
   },
+  watch: {
+    previewEntity() {
+      this.renderContent();
+    },
+  },
   created() {
     this.$options.gridData = [];
   },
   mounted() {
     this.renderContent();
-  },
-  watch: {
-    previewEntity() {
-      this.renderContent();
-    },
+    console.log("previewEntity", this.previewEntity);
   },
   methods: {
     renderContent() {
@@ -112,9 +123,96 @@ export default {
         this.preview.error = "File is too large to preview";
         this.preview.loading = false;
       } else {
-        this.fetchContent();
+        this.isVault ? this.fetchContentFromVault() : this.fetchContent();
+        // this.fetchContent();
       }
     },
+    fetchContentFromVault() {
+      const previewRef = ref(
+        storage,
+        `vault/${this.$store.state.auth.user_id}/${this.previewEntity.name}`
+      );
+      getBlob(previewRef)
+        .then((resBlob) => {
+          this.decrypt(resBlob, this.previewEntity.name);
+        })
+        .catch((err) => console.log(err));
+    },
+
+    convertWordArrayToUint8Array(wordArray) {
+      var arrayOfWords = wordArray.hasOwnProperty("words")
+        ? wordArray.words
+        : [];
+      var length = wordArray.hasOwnProperty("sigBytes")
+        ? wordArray.sigBytes
+        : arrayOfWords.length * 4;
+      var uInt8Array = new Uint8Array(length),
+        index = 0,
+        word,
+        i;
+      for (i = 0; i < length; i++) {
+        word = arrayOfWords[i];
+        uInt8Array[index++] = word >> 24;
+        uInt8Array[index++] = (word >> 16) & 0xff;
+        uInt8Array[index++] = (word >> 8) & 0xff;
+        uInt8Array[index++] = word & 0xff;
+      }
+      return uInt8Array;
+    },
+
+    decrypt(file, fileName) {
+      var reader = new FileReader();
+      reader.onload = async () => {
+        var key = "1234567887654321";
+
+        var decrypted = CryptoJS.AES.decrypt(reader.result, key); // Decryption: I: Base64 encoded string (OpenSSL-format) -> O: WordArray
+        var typedArray = this.convertWordArrayToUint8Array(decrypted); // Convert: WordArray -> typed array
+
+        var fileDec = new Blob([typedArray], {
+          type: this.previewEntity.mime_type,
+        }); // Create blob from typed array
+
+        if (file) {
+          this.preview.url = window.URL.createObjectURL(fileDec);
+          if (this.isTxt) {
+            let data = await new Response(fileDec).text();
+            this.textFileContent = data;
+          }
+          if (this.isDocx) {
+            docx
+              .renderAsync(
+                fileDec,
+                document.getElementById("container"),
+                document.getElementById("container"),
+                {
+                  ignoreLastRenderedPageBreak: false,
+                  experimental: true,
+                }
+              )
+              .then((x) => console.log("docx: finished"));
+          } else if (this.isXlsx) {
+            const z = await fileDec.arrayBuffer();
+            const wb = read(z);
+            this.$options.gridData = utils.sheet_to_json(
+              wb.Sheets[wb.SheetNames[0]]
+            );
+            //Object.freeze(this.$options.gridData);
+            const grid = canvasDatagrid({
+              parentNode: document.getElementById("gridctr"),
+              data: this.$options.gridData,
+            });
+            grid.style.height = "100%";
+            grid.style.width = "100%";
+          }
+          this.preview.loading = false;
+        } else {
+          this.preview.error = "No preview available";
+          this.preview.loading = false;
+        }
+      };
+      reader.readAsText(file);
+    },
+
     async fetchContent() {
       const headers = {
         Accept: "application/json",

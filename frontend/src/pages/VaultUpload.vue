@@ -31,11 +31,11 @@
           <Button appearance="primary" icon-left="plus" @click="chooseFiles()">
             Upload a file
           </Button>
-          <Button v-if="selectedEntity" @click="download">
+          <!-- <Button v-if="selectedEntity" @click="download">
             Download {{ getNameFromIndentifier(selectedEntity) }}
-          </Button>
+          </Button> -->
 
-          <Button v-if="selectedEntity" @click="preview">Preview</Button>
+          <!-- <Button v-if="selectedEntity" @click="preview">Preview</Button> -->
         </label>
       </div>
     </div>
@@ -100,12 +100,20 @@
       :actionItems="actionItems"
       :entityContext="entityContext"
       :close="closeContextMenu" />
+
+    <FilePreview
+      v-if="showPreview"
+      @hide="hidePreview"
+      :previewEntity="previewEntity"
+      :isVault="true" />
   </div>
 </template>
 
 <script>
 import { Button, FeatherIcon, Tooltip } from "frappe-ui";
 import EntityContextMenu from "@/components/EntityContextMenu.vue";
+import FilePreview from "@/components/FilePreview.vue";
+
 import { Buffer } from "buffer";
 import SignalProtocolStore from "libsignal-protocol/test/InMemorySignalProtocolStore.js";
 import CryptoJS from "crypto-js";
@@ -124,7 +132,7 @@ import { ref, uploadBytes, listAll, getBlob } from "firebase/storage";
 export default {
   name: "VaultUpload",
   // eslint-disable-next-line vue/no-reserved-component-names
-  components: { Button, FeatherIcon, Tooltip, EntityContextMenu },
+  components: { Button, FeatherIcon, Tooltip, EntityContextMenu, FilePreview },
 
   setup() {
     return { getIconUrl, formatMimeType };
@@ -134,6 +142,7 @@ export default {
     showEntityContext: false,
     selectedEntity: "",
     entityContext: {},
+    showPreview: false,
     previewEntity: null,
     files: [],
     keyData: {
@@ -193,12 +202,7 @@ export default {
         {
           label: "Download",
           icon: "download",
-          handler: () => {
-            return null;
-          },
-          isEnabled: () => {
-            return true;
-          },
+          handler: () => this.download(),
         },
         {
           label: "View details",
@@ -206,20 +210,12 @@ export default {
           handler: () => {
             this.$store.commit("setShowInfo", true);
           },
-          isEnabled: () => {
-            return !this.$store.state.showInfo && true;
-          },
         },
 
         {
-          label: "Rename",
-          icon: "edit",
-          handler: () => {
-            this.showRenameDialog = true;
-          },
-          isEnabled: () => {
-            return this.selectedEntities.length === 1;
-          },
+          label: "Preview",
+          icon: "eye",
+          handler: () => this.preview(),
         },
       ];
     },
@@ -235,23 +231,12 @@ export default {
     },
 
     handleSelect(file, event) {
-      console.log("selected file event", event.clientX, event.clientY);
       this.selectedEntity = file;
       this.toggleEntityContext({ x: event.clientX, y: event.clientY });
-      console.log(this.selectedEntity);
-    },
-
-    handleSelect(file, event) {
-      this.selectedEntity = file;
-      this.toggleEntityContext({ x: event.clientX, y: event.clientY });
-      console.log(this.selectedEntity);
     },
     toggleEntityContext(event) {
-      console.log("toggeled");
       if (!event) this.showEntityContext = false;
       else {
-        console.log("toggeled else");
-
         // this.hidePreview();
         // this.showEmptyEntityContextMenu = false;
         this.entityContext = event;
@@ -285,7 +270,17 @@ export default {
       const extension = encRemoved.split(".").pop();
       switch (extension) {
         case "jpeg":
-          return "image";
+        case "png":
+          return `image/${extension}`;
+
+        case "txt":
+          return "text/plain";
+
+        case "json":
+          return "application/json";
+
+        case "js":
+          return "application/javascript";
 
         case "mp4":
           return "video";
@@ -294,9 +289,10 @@ export default {
           return "audio";
 
         case "pdf":
-          return "pdf";
+          return "application/pdf";
 
         case "xlsx":
+        case "csv":
           return "vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
         case "ppt":
@@ -341,6 +337,7 @@ export default {
       return new Promise((resolve, reject) => {
         var reader = new FileReader();
         reader.onload = async () => {
+          var key = "1234567887654321";
           var wordArray = CryptoJS.lib.WordArray.create(reader.result); // Convert: ArrayBuffer -> WordArray
           var encrypted = CryptoJS.AES.encrypt(wordArray, key).toString(); // Encryption: I: WordArray -> O: -> Base64 encoded string (OpenSSL-format)
 
@@ -360,6 +357,8 @@ export default {
     decrypt(file, fileName, key, type) {
       var reader = new FileReader();
       reader.onload = () => {
+        var key = "1234567887654321";
+
         var decrypted = CryptoJS.AES.decrypt(reader.result, key); // Decryption: I: Base64 encoded string (OpenSSL-format) -> O: WordArray
         var typedArray = this.convertWordArrayToUint8Array(decrypted); // Convert: WordArray -> typed array
 
@@ -367,7 +366,7 @@ export default {
 
         var a = document.createElement("a");
         var url = window.URL.createObjectURL(fileDec);
-
+        console.log(url);
         // Remove .enc appended during encryption
         var filename = fileName.substr(0, fileName.length - 4);
         a.href = url;
@@ -407,20 +406,17 @@ export default {
     },
 
     preview() {
-      const previewRef = ref(
-        storage,
-        `vault/${this.$store.state.auth.user_id}/${this.selectedEntity}`
-      );
-      getBlob(previewRef)
-        .then((resBlob) => {
-          this.decrypt(
-            resBlob,
-            this.selectedEntity,
-            decryptedKeys[this.selectedEntity],
-            "PREVIEW"
-          );
-        })
-        .catch((err) => console.log(err));
+      this.previewEntity = {
+        name: this.selectedEntity,
+        mime_type: this.getIconFromIdentifier(this.selectedEntity),
+      };
+      console.log("preview enity", this.previewEntity);
+      this.showPreview = true;
+    },
+
+    hidePreview() {
+      this.showPreview = false;
+      this.previewEntity = null;
     },
 
     testDecrypt() {
