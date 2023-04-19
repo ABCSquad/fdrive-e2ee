@@ -4,7 +4,10 @@
       <div
         class="fixed inset-0 transition-opacity bg-gray-900 opacity-75"
         @click="this.$emit('hide')"></div>
-      <FileRender :isVault="isVault" :previewEntity="previewEntity" />
+      <FileRender
+        :isVault="isVault"
+        :previewEntity="previewEntity"
+        :decryptKey="decryptKey" />
     </div>
   </Teleport>
 </template>
@@ -25,6 +28,10 @@ export default {
     },
     isVault: {
       type: Boolean,
+      required: false,
+    },
+    decryptKey: {
+      type: String,
       required: false,
     },
   },

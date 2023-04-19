@@ -105,7 +105,8 @@
       v-if="showPreview"
       @hide="hidePreview"
       :previewEntity="previewEntity"
-      :isVault="true" />
+      :isVault="true"
+      :decryptKey="decryptKey" />
   </div>
 </template>
 
@@ -144,6 +145,7 @@ export default {
     entityContext: {},
     showPreview: false,
     previewEntity: null,
+    decryptKey: null,
     files: [],
     keyData: {
       missingKeys: [
@@ -410,6 +412,7 @@ export default {
     },
 
     preview() {
+      this.decryptKey = decryptedKeys[this.selectedEntity];
       this.previewEntity = {
         name: this.selectedEntity,
         mime_type: this.getIconFromIdentifier(this.selectedEntity),
