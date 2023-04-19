@@ -96,10 +96,9 @@
 
     <EntityContextMenu
       v-if="showEntityContext"
-      v-on-outside-click="closeContextMenu"
-      :entity-name="selectedEntity"
-      :action-items="actionItems"
-      :entity-context="entityContext"
+      :entityName="selectedEntity"
+      :actionItems="actionItems"
+      :entityContext="entityContext"
       :close="closeContextMenu" />
   </div>
 </template>
@@ -186,7 +185,6 @@ export default {
   computed: {
     userId() {
       console.log(this.$store.state.auth.user_id);
-
       return null;
     },
 
@@ -195,16 +193,6 @@ export default {
         {
           label: "Download",
           icon: "download",
-          handler: () => {
-            return null;
-          },
-          isEnabled: () => {
-            return true;
-          },
-        },
-        {
-          label: "Share",
-          icon: "share-2",
           handler: () => {
             return null;
           },
@@ -230,10 +218,10 @@ export default {
             this.showRenameDialog = true;
           },
           isEnabled: () => {
-            return true;
+            return this.selectedEntities.length === 1;
           },
         },
-      ].filter((item) => item.isEnabled());
+      ];
     },
   },
   mounted() {
@@ -253,6 +241,11 @@ export default {
       console.log(this.selectedEntity);
     },
 
+    handleSelect(file, event) {
+      this.selectedEntity = file;
+      this.toggleEntityContext({ x: event.clientX, y: event.clientY });
+      console.log(this.selectedEntity);
+    },
     toggleEntityContext(event) {
       console.log("toggeled");
       if (!event) this.showEntityContext = false;
@@ -260,9 +253,9 @@ export default {
         console.log("toggeled else");
 
         // this.hidePreview();
-        this.showEntityContext = true;
         // this.showEmptyEntityContextMenu = false;
         this.entityContext = event;
+        this.showEntityContext = true;
       }
     },
     closeContextMenu() {
