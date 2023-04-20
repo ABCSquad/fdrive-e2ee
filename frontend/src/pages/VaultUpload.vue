@@ -229,9 +229,9 @@ export default {
       ];
     },
   },
-  mounted() {
+  async mounted() {
+    await this.getKeys();
     this.getAllFiles();
-    this.getKeys();
   },
 
   methods: {
@@ -464,7 +464,7 @@ export default {
         );
       // Retrieve file keys from server
       const response = await fetch(
-        `http://192.168.29.215:5000/api/user/${companionAddress.getName()}/${companionAddress.getDeviceId()}/key`
+        `http://localhost:5000/api/user/${companionAddress.getName()}/${companionAddress.getDeviceId()}/key`
       );
       const responseData = await response.json();
       console.log(responseData.data);
@@ -529,21 +529,18 @@ export default {
         // Update local storage store content
         this.storingSignalStore();
         // Send file to server to store in database
-        const response = await fetch(
-          "http://192.168.29.215:5000/api/key/upload",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              file: fileId,
-              companionAddress: localStorage.getItem("companionAddress"),
-              username: localStorage.getItem("username"),
-              key: encryptedKey,
-            }),
-          }
-        );
+        const response = await fetch("http://localhost:5000/api/key/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            file: fileId,
+            companionAddress: localStorage.getItem("companionAddress"),
+            username: localStorage.getItem("username"),
+            key: encryptedKey,
+          }),
+        });
         console.log({
           file: fileId,
           companionAddress: localStorage.getItem("companionAddress"),
